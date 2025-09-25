@@ -192,13 +192,134 @@ in
     enableSshSupport = gitUseSshSigning;
   };
 
+  programs.firefox = {
+    enable = true;
+    package = pkgs.firefox;
+    profiles.default = {
+      id = 0;
+      name = "default";
+      settings = {
+        "toolkit.legacyUserProfileCustomizations.stylesheets" = true;
+        "browser.theme.content-theme" = 0;
+        "browser.theme.toolbar-theme" = 0;
+        "browser.uidensity" = 1;
+      };
+      userChrome = ''
+        :root {
+          --bd-base: ${palette.base};
+          --bd-surface0: ${palette.surface0};
+          --bd-surface1: ${palette.surface1};
+          --bd-mauve: ${palette.mauve};
+          --bd-text: ${palette.text};
+        }
+
+        #navigator-toolbox,
+        #nav-bar,
+        #TabsToolbar,
+        #PersonalToolbar {
+          background-color: var(--bd-surface0) !important;
+          color: var(--bd-text) !important;
+        }
+
+        .tab-background[selected="true"] {
+          background-color: var(--bd-surface1) !important;
+          border-bottom: 2px solid var(--bd-mauve) !important;
+        }
+
+        .tab-label[selected="true"] {
+          color: var(--bd-text) !important;
+        }
+
+        .tab-background {
+          background-color: var(--bd-base) !important;
+        }
+
+        #urlbar {
+          background-color: var(--bd-surface1) !important;
+          color: var(--bd-text) !important;
+        }
+
+        #urlbar-background {
+          background-color: transparent !important;
+          border: 1px solid var(--bd-mauve) !important;
+        }
+
+        #urlbar-input,
+        #urlbar-input::-moz-placeholder {
+          color: var(--bd-text) !important;
+        }
+
+        toolbarbutton {
+          color: var(--bd-text) !important;
+        }
+
+        toolbarbutton:hover {
+          background-color: var(--bd-surface1) !important;
+        }
+      '';
+      userContent = ''
+        @-moz-document url("about:home"), url("about:newtab") {
+          body {
+            background-color: ${palette.base} !important;
+            color: ${palette.text} !important;
+          }
+
+          .search-wrapper .logo-and-wordmark .wordmark {
+            fill: ${palette.text} !important;
+          }
+
+          .top-sites-list .top-site-outer .tile {
+            background: ${palette.surface0} !important;
+            color: ${palette.text} !important;
+          }
+        }
+      '';
+    };
+  };
+
+  programs.swaylock = {
+    enable = true;
+    package = pkgs.swaylock-effects;
+    settings = {
+      "indicator" = true;
+      "indicator-radius" = 140;
+      "indicator-thickness" = 12;
+      "line-uses-ring" = true;
+      "screenshots" = true;
+      "effect-blur" = "7x5";
+      "fade-in" = "0.2";
+      "color" = lib.removePrefix "#" palette.base;
+      "inside-color" = lib.removePrefix "#" palette.surface0;
+      "ring-color" = lib.removePrefix "#" palette.mauve;
+      "separator-color" = "00000000";
+      "text-color" = lib.removePrefix "#" palette.text;
+      "key-hl-color" = lib.removePrefix "#" palette.blue;
+      "bs-hl-color" = lib.removePrefix "#" palette.red;
+      "grace" = 3;
+    };
+    extraOptions = [
+      "--font 'JetBrainsMono Nerd Font'"
+      "--clock"
+    ];
+  };
+
+  dconf.settings."org/gnome/desktop/interface" = {
+    gtk-theme = "catppuccin-mocha-mauve-compact";
+    icon-theme = "Papirus-Dark";
+    cursor-theme = "Bibata-Modern-Classic";
+  };
+
+  dconf.settings."org/gnome/nautilus/preferences" = {
+    default-folder-viewer = "list-view";
+    show-hidden-files = true;
+  };
+
   home.packages = lib.mkAfter (
     with pkgs;
     [
       ghostty
       firefox
       nautilus
-      swaylock
       wl-clipboard
       cliphist
     ]
