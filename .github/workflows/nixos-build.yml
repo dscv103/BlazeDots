@@ -1,0 +1,85 @@
+name: NixOS Build (flake)
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  discover:
+    name: Discover nixosConfigurations
+    runs-on: ubuntu-latest
+    outputs:
+      hosts: ${{ steps.get-hosts.outputs.hosts }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          extra_nix_config: experimental-features = nix-command flakes
+
+      - name: Show flake metadata
+        run: nix flake metadata || true
+
+      - id: get-hosts
+        name: Get nixosConfigurations attr names
+        run: |
+          set -euo pipefail
+          # Produces a JSON array of configuration names, e.g. ["laptop","server"]
+          echo "hosts=$(nix eval --json .#nixosConfigurations --apply builtins.attrNames)" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.host }}
+    needs: discover
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        host: ${{ fromJSON(needs.discover.outputs.hosts) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          extra_nix_config: experimental-features = nix-command flakes
+
+      - name: Build system closure
+        run: |
+          set -euo pipefail
+          echo "::group::Build nixosConfigurations.${{ matrix.host }}"
+          nix build --accept-flake-config ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel"
+          readlink -f result
+          echo "::endgroup::"
+
+      - name: Export system as .nar
+        run: |
+          set -euo pipefail
+          out="$(readlink -f ./result)"
+          nix store dump-path "$out" > "${{ matrix.host }}.nar"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: nixos-system-${{ matrix.host }}
+          path: ${{ matrix.host }}.nar
+          if-no-files-found: error
+
+      # Optional: push to Cachix if you have a cache set up.
+      # - name: Use Cachix (optional)
+      #   if: ${{ secrets.CACHIX_AUTH_TOKEN != '' }}
+      #   uses: cachix/cachix-action@v14
+      #   with:
+      #     name: your-cachix-cache
+      #     authToken: ${{ secrets.CACHIX_AUTH_TOKEN }}
+      # - name: Push build to Cachix (optional)
+      #   if: ${{ secrets.CACHIX_AUTH_TOKEN != '' }}
+      #   run: |
+      #     nix path-info --json ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel" \
+      #       | jq -r '.[0]' \
+      #       | xargs -I{} cachix push your-cachix-cache {}
