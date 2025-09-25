@@ -17,16 +17,15 @@
         key = "~/.ssh/id_ed25519.pub";
         signByDefault = true;
       };
-      extraConfig =
-        {
-          init.defaultBranch = "main";
-          pull.rebase = true;
-          push.autoSetupRemote = true;
-        }
-        // lib.optionalAttrs gitUseSshSigning {
-          gpg.format = "ssh";
-          user.signingkey = "ssh-ed25519 ~/.ssh/id_ed25519.pub";
-        };
+      extraConfig = {
+        init.defaultBranch = "main";
+        pull.rebase = true;
+        push.autoSetupRemote = true;
+      }
+      // lib.optionalAttrs gitUseSshSigning {
+        gpg.format = "ssh";
+        user.signingkey = "ssh-ed25519 ~/.ssh/id_ed25519.pub";
+      };
     };
 
     gh = {
