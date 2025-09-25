@@ -19,6 +19,7 @@ let
     text = "#cdd6f4";
     mauve = "#cba6f7";
     blue = "#89b4fa";
+    red = "#f38ba8";
   };
 in
 {
@@ -296,11 +297,9 @@ in
       "key-hl-color" = lib.removePrefix "#" palette.blue;
       "bs-hl-color" = lib.removePrefix "#" palette.red;
       "grace" = 3;
+      "font" = "JetBrainsMono Nerd Font";
+      "clock" = true;
     };
-    extraOptions = [
-      "--font 'JetBrainsMono Nerd Font'"
-      "--clock"
-    ];
   };
 
   dconf.settings."org/gnome/desktop/interface" = {
