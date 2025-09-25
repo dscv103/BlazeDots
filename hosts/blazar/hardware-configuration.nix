@@ -29,12 +29,12 @@
   };
 
   fileSystems."/" = {
-    device = "/dev/mapper/luks-root";
+    device = lib.mkDefault "/dev/mapper/luks-root";
     fsType = "btrfs";
   };
 
   fileSystems."/boot" = {
-    device = "/dev/disk/by-uuid/80BE-0846";
+    device = lib.mkDefault "/dev/disk/by-uuid/80BE-0846";
     fsType = "vfat";
     options = [
       "fmask=0022"

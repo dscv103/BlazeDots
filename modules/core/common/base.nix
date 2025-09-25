@@ -62,9 +62,6 @@ in
 
   security = {
     sudo.wheelNeedsPassword = lib.mkDefault true;
-    pam.services.login.setEnvironment = {
-      "LANG" = locale;
-    };
   };
 
   hardware.enableRedistributableFirmware = true;

@@ -52,15 +52,6 @@ _: {
                     "ssd"
                   ];
                 };
-                "@log" = {
-                  mountpoint = "/var/log";
-                  mountOptions = [
-                    "subvol=@log"
-                    "compress=zstd"
-                    "noatime"
-                    "ssd"
-                  ];
-                };
                 "@persist" = {
                   mountpoint = "/persist";
                   mountOptions = [
