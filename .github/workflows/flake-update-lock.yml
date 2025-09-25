@@ -1,0 +1,99 @@
+name: Update flake.lock
+
+on:
+  schedule:
+    # Runs every Monday at 08:00 UTC — adjust as you like
+    - cron: "0 8 * * 1"
+  workflow_dispatch:
+    inputs:
+      input_name:
+        description: "Optional: update only this flake input (e.g. nixpkgs)"
+        required: false
+        default: ""
+      do_check:
+        description: "Run 'nix flake check' after updating"
+        required: false
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: update-flake-lock
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    env:
+      # Ensure flakes are enabled even on minimal setups
+      NIX_CONFIG: experimental-features = nix-command flakes
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Fast, reliable Nix install for CI
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v14
+
+      # Optional: cache popular Nix binaries to speed things up
+      - name: Enable Magic Nix Cache
+        uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Configure Git author
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Update flake.lock
+        id: update
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -n "${{ github.event.inputs.input_name || '' }}" ]]; then
+            echo "Updating only input: ${{ github.event.inputs.input_name }}"
+            nix flake lock --update-input "${{ github.event.inputs.input_name }}"
+          else
+            echo "Updating all inputs"
+            nix flake update
+          fi
+
+          if git diff --quiet -- flake.lock; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: nix flake check (optional)
+        if: steps.update.outputs.changed == 'true' && (github.event_name == 'schedule' || github.event.inputs.do_check == 'true')
+        run: nix flake check --print-build-logs
+
+      - name: Create PR
+        if: steps.update.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "ci: update flake.lock"
+          title: "ci: update flake.lock"
+          body: |
+            Automated update of `flake.lock`.
+
+            - Trigger: `${{ github.event_name }}`
+            - Input: `${{ github.event.inputs.input_name || 'all inputs' }}`
+            - Check run: `${{ (github.event_name == 'schedule' || github.event.inputs.do_check == 'true') && 'nix flake check ran' || 'skipped' }}`
+          branch: ci/update-flake-lock
+          delete-branch: true
+          signoff: false
+          author: "github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>"
+          labels: |
+            dependencies
+            nix
+            automated
+
+      - name: No changes
+        if: steps.update.outputs.changed != 'true'
+        run: echo "flake.lock already up-to-date. Nothing to do."
