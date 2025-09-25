@@ -12,6 +12,33 @@ This repository contains a flake-parts based NixOS configuration for the host **
 - `hosts/blazar/` contains the host profile, hardware stub, and Disko layout scaffold.
 - `homes/dscv/home.nix` assembles the exported Home Manager modules for the `dscv` user.
 
+## Developer Environment
+
+Follow these steps to activate the project shell defined in `devenv.nix`.
+
+1. Install the prerequisites (once per machine):
+   ```bash
+   nix profile install nixpkgs#direnv
+   nix profile install github:cachix/devenv/latest
+   ```
+   Add `eval "$(direnv hook bash)"` (or `... zsh`) to your shell rc if you have not already.
+2. Create an `.envrc` in the repository root with the single line `use devenv` and allow it:
+   ```bash
+   echo 'use devenv' > .envrc
+   direnv allow
+   ```
+   Direnv now auto-loads the shell whenever you enter the directory.
+3. To launch manually without Direnv, run `devenv shell` from the repo root.
+4. Verify the bundled tooling the first time you enter the shell:
+   ```bash
+   sapling --version
+   ruff --version
+   pytest --version
+   bandit --version
+   pyrefly --help | head -n 1
+   ```
+   The environment also exposes Rust (stable toolchain with rustfmt and clippy), Zig, Node.js 20 with npm, Nix with flakes enabled, and the VS Code extensions listed in `devenv.nix`.
+
 ## Installation Runbook
 
 ### Pre-installation Checklist
