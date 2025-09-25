@@ -69,7 +69,6 @@ _: {
                     "noatime"
                     "ssd"
                   ];
-                  neededForBoot = true;
                 };
                 "@swap" = {
                   mountpoint = "/swap";
