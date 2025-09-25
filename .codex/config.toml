@@ -1,0 +1,206 @@
+# gpt5-codex / config.toml — Auto-MCP Edition
+# Goal: Start MCP servers automatically and route NixOS authoring tasks through a safe, deterministic pipeline.
+
+[agent]
+name        = "gpt5-codex"
+role        = "NixOS engineer & release manager"
+description = "Reproducible NixOS (flake-parts + Home Manager). Never invent hashes; always show prefetch commands."
+language    = "nix"
+code_style  = "concise"
+
+[agent.guards]
+no_invented_hashes = true
+write_confirmation_token = "CONFIRM_SCAFFOLD"
+no_side_effects_by_default = true
+
+[generation]
+temperature       = 0.1
+top_p             = 0.9
+max_output_tokens = 2048
+deterministic_style = true
+
+[nix.defaults]
+flake_parts   = true
+home_manager  = true
+sops_nix      = true
+impermanence  = false
+disko         = "none"            # "none"|"btrfs"|"zfs"|"ext4"
+formatters    = ["treefmt", "nixfmt", "statix", "deadnix"]
+ci            = ["flake check (print)", "nix fmt (print)", "statix (print)", "deadnix (print)"]
+
+[nix.env]
+NIX_CONFIG = '''
+build-users-group =
+experimental-features = nix-command flakes
+sandbox = false
+'''
+
+############################################################
+# AUTO MCP: start servers and route to them automatically
+############################################################
+[automation]
+auto_use_mcp = true
+# When true, start all enabled MCP servers at agent startup.
+autostart_mcp = true
+# Default pipeline invoked for Nix/NixOS tasks unless overridden.
+default_pipeline = "nixos_authoring_default"
+
+# Heuristic triggers to pick the pipeline automatically.
+# (Applied in order; first match wins.)
+[[automation.routing]]
+if.language_in = ["nix", "toml", "yaml"]
+use_pipeline   = "nixos_authoring_default"
+
+[[automation.routing]]
+if.prompt_matches = ["*nixos*", "*flake*", "*home manager*", "*flake-parts*", "*disko*", "*impermanence*"]
+use_pipeline      = "nixos_authoring_default"
+
+[[automation.routing]]
+if.prompt_matches = ["*prefetch*", "*sha*", "*hash*", "*lib.fakeSha256*"]
+use_pipeline      = "hash_helper"
+
+[[automation.routing]]
+if.prompt_matches = ["*format*", "*lint*", "*statix*", "*deadnix*", "*treefmt*"]
+use_pipeline      = "lint_and_format"
+
+[[automation.routing]]
+if.prompt_matches = ["*flake check*", "*smoke build*", "*dry build*", "*nix build*"]
+use_pipeline      = "safe_eval"
+
+############################################################
+# PIPELINES (auto-orchestrated tool calls)
+############################################################
+# Main authoring pipeline: plan -> docs -> validate -> hash hints -> lint/format plan -> safe eval plan
+[pipelines.nixos_authoring_default]
+description = "Plan, cite docs, validate, add hash hints, and print checks for NixOS changes."
+steps = [
+  # 1) Structured plan (no side effects), pinned into Context7.
+  { call = "sequential_thinking:plan.make",
+    with = { goal_from_prompt = true, constraints_from = "agent.guards|nix.defaults" },
+    save_as = "plan" },
+  { call = "context7:c7.pin", with = { id = "plan", content_from = "plan", ttl = "2h" } },
+
+  # 2) Doc grounding (top results) — safe, cached.
+  { call = "docsearch:docs.search", with = { q_from_prompt = true, k = 5 }, save_as = "doc_hits" },
+  { call = "context7:c7.pin", with = { id = "docs", content_from = "doc_hits", ttl = "2h" } },
+
+  # 3) Schema validation for any generated Nix files.
+  { call = "schema_guard:schema.validate", with = { kind = "nixos", content_from = "proposed_files" }, save_as = "schema_result" },
+
+  # 4) Hash helper: whenever URLs or git sources appear, print exact prefetch commands.
+  { call = "nix_hash_helper:hash.libfake", save_as = "fake_sha_placeholder" },
+  { call = "nix_hash_helper:hash.prefetch_cmd", when = "found_urls", with = { url_from = "found_urls" }, save_as = "prefetch_cmds" },
+  { call = "nix_hash_helper:hash.prefetch_git_cmd", when = "found_git", with = { repo_from = "found_git.repo", rev_from = "found_git.rev" }, save_as = "prefetch_git_cmds" },
+
+  # 5) Print-only lint/format plan.
+  { call = "nix_lint_format:fmt.plan",  with = { paths = ["**/*.nix"] }, save_as = "fmt_plan"  },
+  { call = "nix_lint_format:lint.plan", with = { paths = ["**/*.nix"] }, save_as = "lint_plan" },
+
+  # 6) Print-only evaluation/checks.
+  { call = "nix_eval_safe:nix.print_checks", with = { path = "." }, save_as = "eval_plan" }
+]
+
+# Quick hash-helper pipeline (when user asks about hashes or prefetch).
+[pipelines.hash_helper]
+steps = [
+  { call = "nix_hash_helper:hash.libfake", save_as = "fake_sha_placeholder" },
+  { call = "nix_hash_helper:hash.prefetch_cmd", when = "found_urls", with = { url_from = "found_urls" }, save_as = "prefetch_cmds" },
+  { call = "nix_hash_helper:hash.prefetch_git_cmd", when = "found_git", with = { repo_from = "found_git.repo", rev_from = "found_git.rev" }, save_as = "prefetch_git_cmds" }
+]
+
+# Print-only lint + format plan.
+[pipelines.lint_and_format]
+steps = [
+  { call = "nix_lint_format:fmt.plan",  with = { paths = ["**/*.nix"] }, save_as = "fmt_plan"  },
+  { call = "nix_lint_format:lint.plan", with = { paths = ["**/*.nix"] }, save_as = "lint_plan" }
+]
+
+# Print-only eval/checks.
+[pipelines.safe_eval]
+steps = [
+  { call = "nix_eval_safe:nix.print_checks", with = { path = "." }, save_as = "eval_plan" }
+]
+
+############################################################
+# MCP Servers (autostart + backoff)
+############################################################
+[mcp]
+restart_on_failure = true
+backoff_initial_ms = 500
+backoff_max_ms     = 8000
+
+[mcp.servers.sequential_thinking]
+enabled   = true
+autostart = true
+command   = "sequential-thinking-mcp"
+args      = ["--max-steps=12", "--format=plan"]
+env.SAFE_MODE = "1"
+
+[mcp.servers.context7]
+enabled   = true
+autostart = true
+command   = "context7-mcp"
+args      = ["--slots=7", "--window=30k", "--summarizer=bart-small"]
+env.INDEX_DIR = "${XDG_STATE_HOME:-~/.local/state}/gpt5-codex/context7"
+
+[mcp.servers.docsearch]
+enabled   = true
+autostart = true
+command   = "docs-mcp"
+args = [
+  "--source", "https://nixos.org/manual/nixos/stable/",
+  "--source", "https://nixos.org/manual/nixpkgs/stable/",
+  "--source", "https://nix-community.github.io/flake-parts/",
+  "--source", "https://nix-community.github.io/home-manager/options.html",
+  "--source", "https://github.com/nix-community/impermanence",
+  "--source", "https://github.com/nix-community/sops-nix",
+  "--source", "https://github.com/nix-community/disko",
+  "--crawl-depth", "1",
+  "--cache-ttl", "172800"
+]
+env.CACHE_DIR = "${XDG_CACHE_HOME:-~/.cache}/gpt5-codex/docs"
+
+[mcp.servers.nix_manual_index]
+enabled   = true
+autostart = false   # optional local index; set true if you have local clones
+command   = "nix-manual-index-mcp"
+args      = ["--root", "~/Developer/nix-docs",
+             "--repos", "nixos-manual,nixpkgs-manual,home-manager,flake-parts,impermanence,sops-nix,disko"]
+
+[mcp.servers.nix_hash_helper]
+enabled   = true
+autostart = true
+command   = "nix-hash-helper-mcp"
+args      = ["--mode=print-only"]
+
+[mcp.servers.nix_lint_format]
+enabled   = true
+autostart = true
+command   = "nix-lint-format-mcp"
+args      = ["--print-only"]
+
+[mcp.servers.schema_guard]
+enabled   = true
+autostart = true
+command   = "schema-guard-mcp"
+args      = ["--bundled-schemas=nixos,flake-parts,home-manager,treefmt-nix,github-ci"]
+
+[mcp.servers.nix_eval_safe]
+enabled   = true
+autostart = true
+command   = "nix-eval-safe-mcp"
+args      = ["--mode=print-only", "--checks=flake-metadata,flake-check,build-dry"]
+env.NIX_CONFIG = "experimental-features = nix-command flakes"
+
+############################################################
+# Output & presentation
+############################################################
+[output.rules]
+show_resolved_inputs_table = true
+attach_prefetch_commands   = true
+stable_attr_order          = true
+
+[ui]
+show_tool_citations = true
+show_warning_banners = true
+plan_first_always    = true
