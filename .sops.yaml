@@ -1,0 +1,10 @@
+# @managed-by: nixos-config-generator
+# Do not edit without understanding overwrite policy.
+keys:
+  - &primary "age-public-key-placeholder"
+
+creation_rules:
+  - path_regex: secrets/.*\.(ya?ml|json|env)$
+    key_groups:
+      - age:
+          - *primary
