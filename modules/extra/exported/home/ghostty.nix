@@ -26,12 +26,10 @@ let
     bright_white = "#cdd6f4";
   };
 
-  renderPalette = colors:
+  renderPalette =
+    colors:
     lib.concatStringsSep "\n" (
-      lib.imap1 (
-        idx: color:
-          "palette = ${toString (idx - 1)}:${color}"
-      ) colors
+      lib.imap1 (idx: color: "palette = ${toString (idx - 1)}:${color}") colors
     );
 
   paletteList = [
@@ -54,20 +52,20 @@ let
   ];
 
   ghosttyConfig = ''
-window-decoration = false
-background = ${palette.base}
-foreground = ${palette.text}
-cursor-color = ${palette.cursor}
-selection-background = ${palette.selection}
-selection-foreground = ${palette.selection_text}
-font-family = "JetBrainsMono Nerd Font"
-font-size = 12
-line-height = 1.1
-padding-x = 10
-padding-y = 10
-cursor-style = beam
-${renderPalette paletteList}
-'';
+    window-decoration = false
+    background = ${palette.base}
+    foreground = ${palette.text}
+    cursor-color = ${palette.cursor}
+    selection-background = ${palette.selection}
+    selection-foreground = ${palette.selection_text}
+    font-family = "JetBrainsMono Nerd Font"
+    font-size = 12
+    line-height = 1.1
+    padding-x = 10
+    padding-y = 10
+    cursor-style = beam
+    ${renderPalette paletteList}
+  '';
 
 in
 {
