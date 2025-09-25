@@ -15,7 +15,7 @@
       modesetting.enable = true;
       powerManagement.enable = true;
       nvidiaSettings = true;
-      package = config.boot.kernelPackages.nvidiaPackages.production;
+      package = config.boot.kernelPackages.nvidiaPackages.latest;
       open = lib.mkDefault true;
     };
   };
