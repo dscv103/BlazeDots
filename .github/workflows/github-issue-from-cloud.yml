@@ -1,0 +1,157 @@
+name: codex: run from Issue (cloud)
+
+on:
+  issues:
+    types: [labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "Issue number to run"
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+env:
+  CODEX_CONFIG: .codex/config.toml
+  # Toggle formatters in cloud (avoids Prettier/yamlfmt failures):
+  SKIP_PRETTIER: "1"
+  SKIP_YAML: "0"
+  # Conservative Nix defaults so codex can run even if you use flakes later:
+  NIX_CONFIG: |
+    experimental-features = nix-command flakes
+    sandbox = false
+
+jobs:
+  run:
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issues' && github.event.label.name == 'codex:run')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install gh + jq (helpers)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y jq
+
+      - name: Install codex CLI
+        # Replace with your real install path if different.
+        # Option A: pipx (example)
+        run: |
+          python3 -m pip install --user pipx
+          python3 -m pipx ensurepath
+          ~/.local/bin/pipx install gpt5-codex || true
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+        # Option B (preferred if you have a fixed binary/installer):
+        # env:
+        #   CODEX_INSTALL_CMD: ${{ secrets.CODEX_INSTALL_CMD }}
+        # run: |
+        #   bash -lc "${CODEX_INSTALL_CMD}"
+
+      - name: Print codex version
+        run: |
+          command -v codex || { echo "codex CLI not found"; exit 1; }
+          codex --version || true
+
+      - name: Resolve issue number
+        id: issue
+        shell: bash
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "num=${{ github.event.inputs.issue_number }}" >> $GITHUB_OUTPUT
+          else
+            echo "num=${{ github.event.issue.number }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Fetch issue spec
+        env: { GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
+        run: |
+          ISSUE=${{ steps.issue.outputs.num }}
+          gh issue view "$ISSUE" --json title,body,number,url > /tmp/issue.json
+          jq -r '.body' /tmp/issue.json > /tmp/issue.md
+          jq -r '.title' /tmp/issue.json > /tmp/title.txt
+          echo "Fetched issue #$ISSUE: $(cat /tmp/title.txt)"
+
+      - name: Determine default branch
+        id: base
+        env: { GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
+        run: |
+          gh repo view --json defaultBranchRef -q .defaultBranchRef.name > /tmp/base.txt
+          echo "name=$(cat /tmp/base.txt)" >> $GITHUB_OUTPUT
+
+      - name: Prepare cloud-safe codex config
+        if: ${{ hashFiles('.codex/config.toml') == '' }}
+        run: |
+          mkdir -p .codex
+          cat > .codex/config.toml <<'EOF'
+          [run]
+          mode = "apply"
+          workspace = "."
+          allowed_paths = ["src", "scripts", "nix", "flake.nix", "README.md"]
+          deny_paths    = [".github/secrets", ".sops", ".git"]
+          branch_prefix = "codex/issue"
+
+          [tools]
+          skip_prettier = true
+          skip_yaml     = false
+
+          [limits]
+          max_files      = 60
+          max_diff_bytes = 300000
+
+          [strategy]
+          sequential_thinking  = true
+          context7             = true
+          documentation_search = true
+
+          [git]
+          sign_commits = false
+          EOF
+
+      - name: Create working branch
+        run: |
+          ISSUE=${{ steps.issue.outputs.num }}
+          BRANCH="codex/issue-${ISSUE}"
+          git checkout -b "$BRANCH"
+
+      - name: Plan with codex (dry run)
+        env:
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}   # if required by your codex
+        run: |
+          codex run --config "$CODEX_CONFIG" --input /tmp/issue.md --plan | tee /tmp/plan.txt
+
+      - name: Apply with codex
+        env:
+          CODEX_API_KEY: ${{ secrets.CODEX_API_KEY }}
+        run: |
+          codex run --config "$CODEX_CONFIG" --input /tmp/issue.md --apply | tee /tmp/apply.log
+
+      - name: Commit changes
+        run: |
+          git config user.name  "codex-bot"
+          git config user.email "codex-bot@users.noreply.github.com"
+          git add -A
+          git commit -m "codex: resolve #${{ steps.issue.outputs.num }} - $(cat /tmp/title.txt)" || echo "Nothing to commit"
+
+      - name: Push & open PR
+        env: { GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
+        run: |
+          BRANCH=$(git rev-parse --abbrev-ref HEAD)
+          git push -u origin "$BRANCH" || true
+          gh pr create \
+            --title "codex: $(cat /tmp/title.txt)" \
+            --body "Resolves #${{ steps.issue.outputs.num }}\n\nPlan:\n\`\`\`\n$(sed -n '1,120p' /tmp/plan.txt)\n\`\`\`" \
+            --base "${{ steps.base.outputs.name }}" \
+            --head "$BRANCH" || echo "PR already exists"
+
+      - name: Comment result on Issue
+        env: { GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} }
+        run: |
+          PR_URL=$(gh pr view --json url -q .url || echo "")
+          gh issue comment ${{ steps.issue.outputs.num }} \
+            --body "✅ Codex ran for this issue in a GitHub-hosted runner. PR: ${PR_URL:-_no PR created_}."
