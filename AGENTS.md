@@ -17,7 +17,7 @@ repo-root/
 
 ```bash
 # Prefer the workspace config:
-gpt5-codex --config .gpt5-codex/config.toml "Plan a NixOS flake for host 'blazar' with Home Manager."
+gpt5-codex --config .codex/config.toml "Plan a NixOS flake for host 'blazar' with Home Manager."
 ```
 
 **VS Code (optional)**
@@ -25,7 +25,7 @@ gpt5-codex --config .gpt5-codex/config.toml "Plan a NixOS flake for host 'blazar
 // .vscode/settings.json
 {
   "terminal.integrated.env.linux": {
-    "GPT5_CODEX_CONFIG": "${workspaceFolder}/.gpt5-codex/config.toml"
+    "GPT5_CODEX_CONFIG": "${workspaceFolder}/.codex/config.toml"
   }
 }
 ```
@@ -74,7 +74,7 @@ User prompt
 | **nix-eval-safe**      | Prints safe evaluation/check steps: `flake metadata`, `flake check`, dry builds.              | `nix.print_checks`, `nix.print_smoke_build`                              | ✅ |
 | **nix-manual-index**   | (Optional) Ultra-fast local grep over cloned manuals.                                         | `nixdocs.grep`, `nixdocs.show`                                           | ⬜ |
 
-> Autostart behavior is configured in `.gpt5-codex/config.toml` under `[mcp.servers.*]`.
+> Autostart behavior is configured in `.codex/config.toml` under `[mcp.servers.*]`.
 
 ---
 
@@ -157,7 +157,7 @@ User prompt
 
 ## Extending Agents (MCP Add‑ons)
 
-You can add more MCP servers by editing `.gpt5-codex/config.toml` under `[mcp.servers.*]`, then wire them into `[[automation.routing]]` and/or `pipelines.*`:
+You can add more MCP servers by editing `.codex/config.toml` under `[mcp.servers.*]`, then wire them into `[[automation.routing]]` and/or `pipelines.*`:
 
 - **nixpkgs‑search MCP**: query package attrs/versions (avoids web browsing).  
 - **nixos‑options MCP**: local index of `nixos-option` output for fast option lookup.  
@@ -183,8 +183,8 @@ Each new server should adhere to **print‑only** and **no‑invented‑hashes**
 Resolution order (recommended):
 1. `--config <path>`  
 2. `$GPT5_CODEX_CONFIG`  
-3. `<cwd>/.gpt5-codex/config.toml`  
-4. `<repo root>/.gpt5-codex/config.toml` (walk up to `.git`/`flake.nix`)  
+3. `<cwd>/.codex/config.toml`  
+4. `<repo root>/.codex/config.toml` (walk up to `.git`/`flake.nix`)  
 5. `~/.config/gpt5-codex/config.toml`
 
 Opt‑out global: `GPT5_CODEX_DISABLE_GLOBAL=1`.
@@ -207,4 +207,4 @@ Opt‑out global: `GPT5_CODEX_DISABLE_GLOBAL=1`.
 
 ---
 
-*This document is authoritative for agent behavior in this repository. Keep it in sync with `.gpt5-codex/config.toml`.*
+*This document is authoritative for agent behavior in this repository. Keep it in sync with `.codex/config.toml`.*
