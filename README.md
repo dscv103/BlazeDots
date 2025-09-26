@@ -68,6 +68,11 @@ Follow these steps to activate the project shell defined in `devenv.nix`.
 - Verify networking, GPU, and Wayland session start-up, then review `journalctl -b` for boot-time warnings.
 - Commit the generated `hosts/blazar/hardware-configuration.nix` (and any Disko edits) back to version control so future rebuilds use the correct hardware definition.
 
+## SOPS-nix Setup
+
+Follow the step-by-step guide in [`docs/sops-nix-setup.md`](docs/sops-nix-setup.md) to generate keys, define `.sops.yaml`,
+encrypt secrets, and integrate them with the existing `blazar` host configuration.
+
 ## Hash Placeholders
 Whenever you introduce a new remote source, replace any `lib.fakeSha256` with the real hash:
 ```bash
