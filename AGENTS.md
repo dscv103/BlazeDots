@@ -21,7 +21,7 @@
 
 **CLI (workspace‑scoped config)**
 ```bash
-gpt5-codex --config .gpt5-codex/config.toml "Plan a NixOS flake for host 'blazar' with HM."
+gpt5-codex --config .codex/config.toml "Plan a NixOS flake for host 'blazar' with HM."
 ```
 
 **VS Code**
@@ -29,7 +29,7 @@ gpt5-codex --config .gpt5-codex/config.toml "Plan a NixOS flake for host 'blazar
 // .vscode/settings.json
 {
   "terminal.integrated.env.linux": {
-    "GPT5_CODEX_CONFIG": "${workspaceFolder}/.gpt5-codex/config.toml"
+    "GPT5_CODEX_CONFIG": "${workspaceFolder}/.codex/config.toml"
   }
 }
 ```
@@ -80,4 +80,4 @@ Prompt → Sequential Thinking (plan) → Context7/Docs (grounding) → MCP‑Ni
 
 ---
 
-*Keep this doc in sync with `.gpt5-codex/config.toml`.*
+*Keep this doc in sync with `.codex/config.toml`.*
