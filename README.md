@@ -52,7 +52,7 @@ Follow these steps to activate the project shell defined in `devenv.nix`.
 ### During Installation
 1. Boot the NixOS installer, log in as `root`, and enable Git in the live environment: `nix-shell -p git`.
 2. Clone this repository into the live environment (for example `git clone <repo-url> /tmp/BlazeDots`) and review any host-specific adjustments you need.
-3. Provision and mount the target disk using the Disko profile (this is destructive): `nix run github:nix-community/disko -- --mode create /tmp/BlazeDots/hosts/blazar/modules/disko.nix`. Disko will prompt for the new LUKS2 passphrase and confirmation—store it securely.
+3. Provision and mount the target disk using the Disko profile (this is destructive): `nix run github:nix-community/disko -- --mode disko /tmp/BlazeDots/hosts/blazar/modules/disko.nix`. Disko will prompt for the new LUKS2 passphrase and confirmation—store it securely.
 4. Verify that `/mnt` now contains the mounted subvolumes (`@root`, `@home`, `@nix`, `@persist`, `@swap`). If not, mount them manually before continuing.
 5. Move the repository into the target system so `nixos-install` can see the flake: `mkdir -p /mnt/etc && mv /tmp/BlazeDots /mnt/etc/nixos` and `cd /mnt/etc/nixos`.
 6. Generate a hardware profile tied to the freshly provisioned system (it will include `boot.initrd.luks.devices.cryptroot` for the encrypted root volume): `nixos-generate-config --root /mnt --show-hardware-config > hosts/blazar/hardware-configuration.nix`.
