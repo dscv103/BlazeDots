@@ -11,15 +11,15 @@
 let
   homeModules = inputs.self + "/modules/extra/exported/home";
   palette = {
-    base = "#1e1e2e";
-    surface0 = "#313244";
-    surface1 = "#45475a";
-    overlay0 = "#6c7086";
-    overlay1 = "#7f849c";
-    text = "#cdd6f4";
-    mauve = "#cba6f7";
-    blue = "#89b4fa";
-    red = "#f38ba8";
+    base = "#111111";
+    surface0 = "#191919";
+    surface1 = "#222222";
+    overlay0 = "#3c3c3c";
+    overlay1 = "#5d5d5d";
+    text = "#dddddd";
+    mauve = "#aaaaaa";
+    blue = "#7aa2f7";
+    red = "#ef8891";
   };
 in
 {
@@ -46,7 +46,7 @@ in
   };
 
   xdg.configFile."niri/config.kdl".text = ''
-    # Catppuccin Mocha accents
+    # Noctalia neutral accents
     layout {
       default-column-width = 120
       gaps {
@@ -74,9 +74,13 @@ in
 
       // ─── Applications ───
       Mod+Return hotkey-overlay-title="Open Terminal: Ghostty" { spawn "ghostty"; }
-      Mod+Ctrl+Return hotkey-overlay-title="Open App Launcher: QS" { spawn "qs" "ipc" "call" "globalIPC" "toggleLauncher"; }
+      Mod+Ctrl+Return hotkey-overlay-title="Open App Launcher: Noctalia" {
+        spawn "noctalia-shell" "ipc" "call" "launcher" "toggle";
+      }
       Mod+B hotkey-overlay-title="Open Browser: firefox" { spawn "firefox"; }
-      Mod+Alt+L hotkey-overlay-title="Lock Screen: swaylock" { spawn "swaylock"; }
+      Mod+Alt+L hotkey-overlay-title="Lock Screen: Noctalia" {
+        spawn "noctalia-shell" "ipc" "call" "lockScreen" "toggle";
+      }
       Mod+E hotkey-overlay-title="File Manager: Nautilus" { spawn "nautilus"; }
       Mod+Shift+V hotkey-overlay-title="Open Editor: VS Code" { spawn "code"; }
 
@@ -276,36 +280,6 @@ in
         }
       '';
     };
-  };
-
-  programs.swaylock = {
-    enable = true;
-    package = pkgs.swaylock-effects;
-    settings = {
-      "indicator" = true;
-      "indicator-radius" = 140;
-      "indicator-thickness" = 12;
-      "line-uses-ring" = true;
-      "screenshots" = true;
-      "effect-blur" = "7x5";
-      "fade-in" = "0.2";
-      "color" = lib.removePrefix "#" palette.base;
-      "inside-color" = lib.removePrefix "#" palette.surface0;
-      "ring-color" = lib.removePrefix "#" palette.mauve;
-      "separator-color" = "00000000";
-      "text-color" = lib.removePrefix "#" palette.text;
-      "key-hl-color" = lib.removePrefix "#" palette.blue;
-      "bs-hl-color" = lib.removePrefix "#" palette.red;
-      "grace" = 3;
-      "font" = "JetBrainsMono Nerd Font";
-      "clock" = true;
-    };
-  };
-
-  dconf.settings."org/gnome/desktop/interface" = {
-    gtk-theme = "catppuccin-mocha-mauve-compact";
-    icon-theme = "Papirus-Dark";
-    cursor-theme = "Bibata-Modern-Classic";
   };
 
   dconf.settings."org/gnome/nautilus/preferences" = {
