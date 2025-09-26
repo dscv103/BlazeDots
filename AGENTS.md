@@ -9,9 +9,8 @@
 **Workspace layout**
 ```
 repo-root/
-  .gpt5-codex/
+  .codex/
     config.toml          # workspace-scoped (autostart MCP)
-    config.local.toml    # optional, untracked overrides
 ```
 
 **Run (CLI)**
