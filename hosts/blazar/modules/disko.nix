@@ -36,7 +36,6 @@ _: {
                   "@root" = {
                     mountpoint = "/";
                     mountOptions = [
-                      "subvol=@root"
                       "compress=zstd"
                       "noatime"
                       "ssd"
@@ -45,7 +44,6 @@ _: {
                   "@home" = {
                     mountpoint = "/home";
                     mountOptions = [
-                      "subvol=@home"
                       "compress=zstd"
                       "noatime"
                       "ssd"
@@ -54,7 +52,6 @@ _: {
                   "@nix" = {
                     mountpoint = "/nix";
                     mountOptions = [
-                      "subvol=@nix"
                       "compress=zstd"
                       "noatime"
                       "ssd"
@@ -63,7 +60,6 @@ _: {
                   "@persist" = {
                     mountpoint = "/persist";
                     mountOptions = [
-                      "subvol=@persist"
                       "compress=zstd"
                       "noatime"
                       "ssd"
@@ -72,10 +68,17 @@ _: {
                   "@swap" = {
                     mountpoint = "/swap";
                     mountOptions = [
-                      "subvol=@swap"
                       "noatime"
                       "ssd"
                     ];
+                    swap = {
+                      swapfile = {
+                        path = "swapfile";
+                        size = "16G";
+                        priority = 0;
+                        options = [ "nofail" ];
+                      };
+                    };
                   };
                 };
               };
@@ -85,22 +88,4 @@ _: {
       };
     };
   };
-
-  swapDevices = [
-    {
-      device = "/swap/swapfile";
-      priority = 0;
-    }
-  ];
-
-  system.activationScripts."prepare-swap".text = ''
-    if [ ! -f /swap/swapfile ]; then
-      mkdir -p /swap
-      chattr +C /swap || true
-      fallocate -l 16G /swap/swapfile
-      chmod 600 /swap/swapfile
-      btrfs property set /swap/swapfile compression none || true
-      mkswap /swap/swapfile
-    fi
-  '';
 }
