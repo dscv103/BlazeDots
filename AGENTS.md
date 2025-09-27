@@ -195,5 +195,3 @@ A task is done when:
 	•	The PR is focused, tests pass (or failures are unrelated and documented), reviews can proceed without guessing intent,
 	•	Risks, rollback, and verification steps are clearly documented,
 	•	MCP/tool usage and any external references are cited.
-
-If you want, I can also generate a small `.github/workflows/copilot-setup-steps.yml` so the cloud agent’s VM has Nix + uv preinstalled before it starts work.
