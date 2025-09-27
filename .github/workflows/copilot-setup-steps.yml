@@ -2,25 +2,30 @@
 name: Copilot Setup Steps
 
 on:
+  # Let you validate it manually and whenever this file changes.
   workflow_dispatch:
   push:
-    paths:
-      - .github/workflows/copilot-setup-steps.yml
+    paths: [.github/workflows/copilot-setup-steps.yml]
   pull_request:
-    paths:
-      - .github/workflows/copilot-setup-steps.yml
+    paths: [.github/workflows/copilot-setup-steps.yml]
 
 jobs:
-  # The job name MUST be exactly `copilot-setup-steps`
+  # The job name MUST be exactly `copilot-setup-steps` for the agent to run it. (Docs)
+  # Also, this workflow must live on the DEFAULT BRANCH to be picked up. (Docs)
+  # ref: https://docs.github.com/.../customize-the-agent-environment
   copilot-setup-steps:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: read
+
     steps:
-      - name: Checkout (optional)
+      - name: Checkout (optional; agent will checkout if you don't)
         uses: actions/checkout@v5
 
-      - name: Install Node.js (for npx / sequential-thinking)
+      # ---- Runtimes & toolchain ---------------------------------------------
+
+      - name: Install Node.js (for npx / MCPs / planning server)
         uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -28,14 +33,51 @@ jobs:
       - name: Install uv (for uvx / mcp-nixos)
         uses: astral-sh/setup-uv@v6
 
-      - name: Preinstall sequential-thinking server (optional but fast)
-        run: npm i -g @modelcontextprotocol/server-sequential-thinking
+      - name: Install Nix (for flake builds, eval, dev shells)
+        uses: cachix/install-nix-action@v27
 
-      - name: Preinstall mcp-nixos wheel (optional but fast)
+      # ---- Warm up MCP servers & CLIs (networking happens BEFORE agent firewall) ----
+      # Note: Copilot’s firewall does NOT apply to setup steps or MCP servers.
+      # This is the right place to download dependencies and images. (Docs)
+      # ref: customize the agent firewall limitations
+      - name: Preinstall mcp-ripgrep (fast code search tools)
+        run: npx -y mcp-ripgrep@latest --help
+
+      - name: Preinstall mcp-nixos wheel
         run: uvx -q mcp-nixos --help
 
+      - name: Preinstall sequential-thinking server (optional)
+        run: npm i -g @modelcontextprotocol/server-sequential-thinking
+
+      - name: Prebuild software-planning MCP (optional)
+        shell: bash
+        run: |
+          set -e
+          if [ -f "/absolute/path/to/software-planning-mcp/package.json" ]; then
+            pushd /absolute/path/to/software-planning-mcp
+            npm ci
+            npm run build
+            popd
+          else
+            echo "software-planning-mcp not found at absolute path (skipping build)"
+          fi
+
+      # ---- Quick smoke checks -----------------------------------------------
       - name: Print versions
         run: |
           node -v
           npm -v
           uv --version
+          nix --version || true
+
+      - name: Nix shell smoke test (non-fatal)
+        continue-on-error: true
+        run: |
+          nix --version
+          # If a flake exists, prove we can enter the dev shell and run Python
+          if [ -f "flake.nix" ]; then
+            nix develop -c python -V || true
+          fi
+
+      - name: Done
+        run: echo "Copilot setup complete ✅"
