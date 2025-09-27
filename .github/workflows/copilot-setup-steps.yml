@@ -1,0 +1,11 @@
+name: Copilot setup steps
+on:
+  workflow_call:
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install uv (for uvx)
+        uses: astral-sh/setup-uv@v6
