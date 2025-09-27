@@ -1,11 +1,41 @@
-name: Copilot setup steps
+# .github/workflows/copilot-setup-steps.yml
+name: Copilot Setup Steps
+
 on:
-  workflow_call:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
 
 jobs:
-  setup:
+  # The job name MUST be exactly `copilot-setup-steps`
+  copilot-setup-steps:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v5
-      - name: Install uv (for uvx)
+      - name: Checkout (optional)
+        uses: actions/checkout@v5
+
+      - name: Install Node.js (for npx / sequential-thinking)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install uv (for uvx / mcp-nixos)
         uses: astral-sh/setup-uv@v6
+
+      - name: Preinstall sequential-thinking server (optional but fast)
+        run: npm i -g @modelcontextprotocol/server-sequential-thinking
+
+      - name: Preinstall mcp-nixos wheel (optional but fast)
+        run: uvx -q mcp-nixos --help
+
+      - name: Print versions
+        run: |
+          node -v
+          npm -v
+          uv --version
