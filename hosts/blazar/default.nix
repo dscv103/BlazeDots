@@ -9,15 +9,15 @@
 {
   imports = [
     ./hardware-configuration.nix
-    (self + "/modules/core/common/base.nix")
-    (self + "/modules/core/common/cpu.nix")
-    (self + "/modules/core/common/kernel.nix")
-    (self + "/modules/core/common/caches.nix")
-    (self + "/modules/core/common/desktop.nix")
-    (self + "/modules/core/common/nvidia.nix")
-    (self + "/modules/core/common/sops.nix")
-    (self + "/modules/core/common/impermanence.nix")
-    (self + "/modules/core/common/disko.nix")
+    (self + "/modules/nixos/base.nix")
+    (self + "/modules/nixos/cpu.nix")
+    (self + "/modules/nixos/kernel.nix")
+    (self + "/modules/nixos/caches.nix")
+    (self + "/modules/nixos/desktop.nix")
+    (self + "/modules/nixos/nvidia.nix")
+    (self + "/modules/nixos/sops.nix")
+    (self + "/modules/nixos/impermanence.nix")
+    (self + "/modules/nixos/disko.nix")
   ];
 
   services.displayManager.defaultSession = lib.mkDefault "niri";

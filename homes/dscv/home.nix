@@ -9,7 +9,7 @@
   ...
 }:
 let
-  homeModules = inputs.self + "/modules/extra/exported/home";
+  homeModules = inputs.self + "/modules/home";
   palette = {
     base = "#111111";
     surface0 = "#191919";

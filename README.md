@@ -7,8 +7,8 @@ This repository contains a flake-parts based NixOS configuration for the host **
 ## Structure Highlights
 - `flake.nix` wires flake-parts, imports `./parts` and `./hosts`, and renders `nixosConfigurations.blazar`.
 - `parts/` modules supply developer tooling, binary cache settings, and module exports.
-- `modules/core/common/` holds system modules (base, CPU, kernel, desktop, NVIDIA, SOPS, impermanence, disko shim).
-- `modules/extra/exported/home/` exports shared Home Manager modules (shell, VS Code, SCM, Starship).
+- `modules/nixos/` holds system modules (base, CPU, kernel, desktop, NVIDIA, SOPS, impermanence, disko shim).
+- `modules/home/` exports shared Home Manager modules (shell, VS Code, SCM, Starship).
 - `hosts/blazar/` contains the host profile, hardware stub, and Disko layout scaffold.
 - `homes/dscv/home.nix` assembles the exported Home Manager modules for the `dscv` user.
 
@@ -60,7 +60,7 @@ Follow these steps to activate the project shell defined in `devenv.nix`.
 8. Deceide if Disko or Hardware-Configuration will manage the filesystem, swap, and cyrptroot.
 9. If you use SOPS secrets, place the AGE key inside the target root: `install -Dvm600 <path-to-key> /mnt/var/lib/sops-nix/key.txt`.
 10. Install the system: `nixos-install --flake .#blazar` (set the root password when prompted).
-11. Create a password for the normal user defined in `modules/core/common/base.nix`: `passwd dscv` (run inside `nixos-enter --root /mnt` if you exited the chroot).
+11. Create a password for the normal user defined in `modules/nixos/base.nix`: `passwd dscv` (run inside `nixos-enter --root /mnt` if you exited the chroot).
 
 ### Post-installation Tasks
 - Reboot into the new system (`reboot`) and remove the installation media when prompted.
