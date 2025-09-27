@@ -36,6 +36,13 @@ in
     ];
   };
 
+  # Automated garbage collection for better disk management
+  nix.gc = {
+    automatic = true;
+    dates = "weekly";
+    options = "--delete-older-than 14d";
+  };
+
   time.timeZone = timezone;
 
   i18n = {

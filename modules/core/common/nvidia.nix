@@ -1,5 +1,10 @@
 # @managed-by: nixos-config-generator
-{ lib, config, pkgs, ... }:
+{
+  lib,
+  config,
+  pkgs,
+  ...
+}:
 {
   services.xserver.videoDrivers = [ "nvidia" ];
 
@@ -11,7 +16,7 @@
   };
 
   hardware.nvidia = {
-    open = false;  # Maxwell (GTX 970) not supported by open kernel module
+    open = false; # Maxwell (GTX 970) not supported by open kernel module
     package = config.boot.kernelPackages.nvidiaPackages.production;
     modesetting.enable = true;
     powerManagement.enable = lib.mkDefault false;
@@ -26,7 +31,12 @@
     "nvidia.NVreg_PreserveVideoMemoryAllocations=1"
   ];
 
-  boot.kernelModules = [ "nvidia" "nvidia_modeset" "nvidia_uvm" "nvidia_drm" ];
+  boot.kernelModules = [
+    "nvidia"
+    "nvidia_modeset"
+    "nvidia_uvm"
+    "nvidia_drm"
+  ];
 
   xdg.portal.enable = true;
   xdg.portal.extraPortals = [
@@ -58,10 +68,13 @@
     __GLX_VENDOR_LIBRARY_NAME = "nvidia";
   };
 
-  environment.systemPackages = lib.mkAfter (with pkgs; [
-    libva-utils
-    vdpauinfo
-  ]);
+  environment.systemPackages = lib.mkAfter (
+    with pkgs;
+    [
+      libva-utils
+      vdpauinfo
+    ]
+  );
 
   services.desktopManager.plasma6.enable = lib.mkForce false;
 }

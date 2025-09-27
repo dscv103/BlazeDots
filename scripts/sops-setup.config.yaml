@@ -5,13 +5,13 @@
 # - You can leave `additional_recipients` empty (host-only decrypt) or add your editor key(s).
 
 repo:
-  root: "."             # Where .sops.yaml is written and secret paths are relative
+  root: "." # Where .sops.yaml is written and secret paths are relative
 
 age:
-  generate: true        # Generate a new age key if key_file is missing
-  private_key_src: ""   # Or point to an existing private key to copy
+  generate: true # Generate a new age key if key_file is missing
+  private_key_src: "" # Or point to an existing private key to copy
 
-  key_file: "/var/lib/sops-nix/key.txt"  # Used by NixOS: sops.age.keyFile
+  key_file: "/var/lib/sops-nix/key.txt" # Used by NixOS: sops.age.keyFile
 
   persist:
     enable: false
@@ -19,7 +19,7 @@ age:
     # path: "/nix/persist/var/lib/sops-nix/key.txt"
     path: ""
 
-additional_recipients:  # Optional editor/CI recipients (age public keys)
+additional_recipients: # Optional editor/CI recipients (age public keys)
   # - "age1yourEDITORpublickeygoeshere0000000000000000000000000"
 
 policy:
