@@ -23,17 +23,30 @@ in
     config.allowUnfree = true;
   };
 
-  nix.settings = {
-    experimental-features = [
-      "nix-command"
-      "flakes"
-    ];
-    auto-optimise-store = true;
-    warn-dirty = false;
-    trusted-users = [
-      "root"
-      username
-    ];
+  nix = {
+    settings = {
+      experimental-features = [
+        "nix-command"
+        "flakes"
+      ];
+      auto-optimise-store = true;
+      warn-dirty = false;
+      trusted-users = [
+        "root"
+        username
+      ];
+    };
+    # Automatic garbage collection to maintain disk space
+    gc = {
+      automatic = true;
+      dates = "weekly";
+      options = "--delete-older-than 30d";
+    };
+    # Automatic store optimization
+    optimise = {
+      automatic = true;
+      dates = [ "03:45" ];
+    };
   };
 
   time.timeZone = timezone;

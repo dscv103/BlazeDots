@@ -11,17 +11,42 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        system: ["x86_64-linux"]
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        
       - name: Install Nix
         uses: cachix/install-nix-action@v31
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
-      - name: Show flake metadata
+            substituters = https://cache.nixos.org https://nix-community.cachix.org
+            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16EGsB+7Ra0/Rdk8= nix-community.cachix.org-1:mNR2m8n0U6L0tJcHkJik4C59gz1+9a089/MefZP4V8g=
+            
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v18
+        with:
+          name: nix-community
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+          skipPush: true
+          
+      - name: Show flake metadata  
         run: nix flake metadata
-      - name: Format check
-        run: nix fmt || true
+        
+      - name: Run all checks (parallel)
+        run: |
+          # Run multiple checks in parallel for faster feedback
+          nix build .#checks.${{ matrix.system }}.formatting &
+          nix build .#checks.${{ matrix.system }}.statix-check &
+          nix build .#checks.${{ matrix.system }}.deadnix-check &
+          nix build .#checks.${{ matrix.system }}.flake-check &
+          wait
+          
       - name: Evaluate system derivation
         run: nix eval .#nixosConfigurations."blazar".config.system.build.toplevel.drvPath
+        
+      - name: Build system (smoke test)
+        run: nix build .#nixosConfigurations."blazar".config.system.build.toplevel --dry-run
