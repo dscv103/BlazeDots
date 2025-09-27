@@ -6,5 +6,6 @@
     ./fmt.nix
     ./caches.nix
     ./modules.nix
+    ./packages.nix
   ];
 }

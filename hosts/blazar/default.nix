@@ -9,15 +9,16 @@
 {
   imports = [
     ./hardware-configuration.nix
-    (self + "/modules/core/common/base.nix")
-    (self + "/modules/core/common/cpu.nix")
-    (self + "/modules/core/common/kernel.nix")
-    (self + "/modules/core/common/caches.nix")
-    (self + "/modules/core/common/desktop.nix")
-    (self + "/modules/core/common/nvidia.nix")
-    (self + "/modules/core/common/sops.nix")
-    (self + "/modules/core/common/impermanence.nix")
-    (self + "/modules/core/common/disko.nix")
+    # Use exported modules for cleaner imports
+    self.modules.nixos.base
+    self.modules.nixos.cpu
+    self.modules.nixos.kernel
+    self.modules.nixos.caches
+    self.modules.nixos.desktop
+    self.modules.nixos.nvidia
+    self.modules.nixos.sops
+    self.modules.nixos.impermanence
+    self.modules.nixos.disko
   ];
 
   services.displayManager.defaultSession = lib.mkDefault "niri";

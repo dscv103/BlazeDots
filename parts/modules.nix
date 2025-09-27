@@ -19,6 +19,8 @@
       vscode = import (self + "/modules/extra/exported/home/vscode.nix");
       scm = import (self + "/modules/extra/exported/home/scm.nix");
       starship = import (self + "/modules/extra/exported/home/starship.nix");
+      ghostty = import (self + "/modules/extra/exported/home/ghostty.nix");
+      theme = import (self + "/modules/extra/exported/home/theme.nix");
     };
   };
 }
