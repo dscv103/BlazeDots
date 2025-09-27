@@ -106,18 +106,17 @@ starshipAddGitStatus: "${input:starshipAddGitStatus:true}"
 ├─ README.md
 ├─ .github/workflows/nix-ci.yml                # if ${enableCI}
 ├─ modules/
-│  ├─ core/
-│  │  └─ common/
-│  │     ├─ base.nix
-│  │     ├─ cpu.nix
-│  │     ├─ kernel.nix
-│  │     ├─ desktop.nix                        # only if ${enableDesktop}
-│  │     ├─ nvidia.nix                         # only if gpu == nvidia
-│  │     ├─ sops.nix                           # only if ${enableSops}
-│  │     ├─ caches.nix                         # public caches
-│  │     ├─ impermanence.nix                   # only if ${enableImpermanence}
-│  │     └─ disko.nix                          # always present, but may be stub
-│  └─ extra/exported/home/
+│  ├─ nixos/
+│     ├─ base.nix
+│     ├─ cpu.nix
+│     ├─ kernel.nix
+│     ├─ desktop.nix                        # only if ${enableDesktop}
+│     ├─ nvidia.nix                         # only if gpu == nvidia
+│     ├─ sops.nix                           # only if ${enableSops}
+│     ├─ caches.nix                         # public caches
+│     ├─ impermanence.nix                   # only if ${enableImpermanence}
+│     └─ disko.nix                          # always present, but may be stub
+│  └─ home/
 │        ├─ shell.nix
 │        ├─ vscode.nix
 │        ├─ scm.nix                            # Git, gh, Sapling (configurable)
@@ -134,9 +133,9 @@ starshipAddGitStatus: "${input:starshipAddGitStatus:true}"
 - If `enableImpermanence == false` → **omit** `impermanence.nix`.  
 - If `enableSops == false` → **omit** `.sops.yaml` and `sops.nix`.  
 - If `enableCI == false` → **omit** `.github/workflows/nix-ci.yml`.  
-- Regardless of above, `modules/core/common/disko.nix` exists but may be a **stub** that imports the host Disko file when `diskFs != "none"`.
+- Regardless of above, `modules/nixos/disko.nix` exists but may be a **stub** that imports the host Disko file when `diskFs != "none"`.
 
-**Binary caches (public only)**: set substituters/keys to `https://cache.nixos.org` and `https://nix-community.cachix.org` in `parts/caches.nix` and `modules/core/common/caches.nix`.
+**Binary caches (public only)**: set substituters/keys to `https://cache.nixos.org` and `https://nix-community.cachix.org` in `parts/caches.nix` and `modules/nixos/caches.nix`.
 
 **Path policy:** Same-tree `./file.nix`; cross-tree with `(self + "/path")`; avoid deep `../../..`.
 
@@ -215,7 +214,7 @@ starshipAddGitStatus: "${input:starshipAddGitStatus:true}"
 
 ## Files to create (authoritative list)
 - Keep your existing list and gates, but apply the **optional-module policy** and **overwrite safety** above.
-- Ensure `parts/caches.nix` and `modules/core/common/caches.nix` set public caches only.
+- Ensure `parts/caches.nix` and `modules/nixos/caches.nix` set public caches only.
 
 ---
 

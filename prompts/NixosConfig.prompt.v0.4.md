@@ -131,7 +131,7 @@ starshipAddGitStatus:"${input:starshipAddGitStatus:true}"
 ├─ README.md
 ├─ .github/workflows/nix-ci.yml       # if ${enableCI}
 ├─ modules/
-│  ├─ core/common/
+│  ├─ nixos/
 │  │  ├─ base.nix
 │  │  ├─ cpu.nix
 │  │  ├─ kernel.nix
@@ -141,7 +141,7 @@ starshipAddGitStatus:"${input:starshipAddGitStatus:true}"
 │  │  ├─ caches.nix                   # public caches policy
 │  │  ├─ impermanence.nix             # only if ${enableImpermanence}
 │  │  └─ disko.nix                    # always present; imports host layout if enabled
-│  └─ extra/exported/home/
+│  └─ home/
 │     ├─ shell.nix
 │     ├─ vscode.nix
 │     ├─ scm.nix                      # Git, gh, Sapling (configurable)
@@ -164,7 +164,7 @@ starshipAddGitStatus:"${input:starshipAddGitStatus:true}"
 - Set substituters/keys to:
   - `https://cache.nixos.org`
   - `https://nix-community.cachix.org`
-- If the selected WM module (e.g. **niri** flake module) **implicitly adds a cache**, print a **Note** identifying it and how to opt-out/allowlist its key explicitly in `modules/core/common/caches.nix`.
+- If the selected WM module (e.g. **niri** flake module) **implicitly adds a cache**, print a **Note** identifying it and how to opt-out/allowlist its key explicitly in `modules/nixos/caches.nix`.
 
 **Path policy:** Use `./relative.nix` inside a tree; cross-tree with `(self + "/path")`; avoid `../../..`.
 
@@ -260,7 +260,7 @@ starshipAddGitStatus:"${input:starshipAddGitStatus:true}"
 
 ## Files to create (authoritative list)
 - Maintain your current list, but apply the **optional-module policy** and **overwrite safety**.
-- Ensure `parts/caches.nix` and `modules/core/common/caches.nix` set **only** the two public caches by default; if a selected module adds additional caches, print a **Note** and show how to opt-out or pin keys.
+- Ensure `parts/caches.nix` and `modules/nixos/caches.nix` set **only** the two public caches by default; if a selected module adds additional caches, print a **Note** and show how to opt-out or pin keys.
 
 ---
 
