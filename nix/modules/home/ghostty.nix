@@ -85,7 +85,7 @@ let
     palette = 15=#ffffff
     font-size = 14
     font-family = MonaspiceAr NF Medium
-    
+
   '';
 
 in

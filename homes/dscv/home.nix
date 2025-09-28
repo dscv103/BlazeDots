@@ -35,14 +35,14 @@ in
   home = {
     inherit username;
     homeDirectory = "/home/${username}";
-    stateVersion  = "24.05";
-    sessionPath   = [ "$HOME/.local/bin" ];
+    stateVersion = "24.05";
+    sessionPath = [ "$HOME/.local/bin" ];
   };
 
   home.sessionVariables = {
     EDITOR = "nvim";
     VISUAL = "nvim";
-    LANG   = "en_US.UTF-8";
+    LANG = "en_US.UTF-8";
   };
 
   # Enable XDG so xdg.configFile maps to ~/.config/*
@@ -55,17 +55,16 @@ in
   home.file.".config/noctalia/settings.json".enable = lib.mkForce false;
 
   # POSIX-safe backup rotation before HM links files (no bashisms)
-  home.activation.rotateNoctaliaBackups =
-    lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
-      dir="$HOME/.config/noctalia"
-      mkdir -p "$dir"
-      # Expand the glob into "$@"; if it doesn't match, "$1" won't exist.
-      set -- "$dir"/settings.json.hm-bak-2025*
-      for f in "$@"; do
-        [ -e "$f" ] || continue
-        mv "$f" "$f.$(date +%F-%H%M%S)"
-      done
-    '';
+  home.activation.rotateNoctaliaBackups = lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+    dir="$HOME/.config/noctalia"
+    mkdir -p "$dir"
+    # Expand the glob into "$@"; if it doesn't match, "$1" won't exist.
+    set -- "$dir"/settings.json.hm-bak-2025*
+    for f in "$@"; do
+      [ -e "$f" ] || continue
+      mv "$f" "$f.$(date +%F-%H%M%S)"
+    done
+  '';
 
   # ---- Niri config ----------------------------------------------------------
   xdg.configFile."niri/config.kdl".text = ''
@@ -291,11 +290,14 @@ in
     show-hidden-files = true;
   };
 
-  home.packages = lib.mkAfter (with pkgs; [
-    ghostty
-    firefox
-    nautilus
-    wl-clipboard
-    cliphist
-  ]);
+  home.packages = lib.mkAfter (
+    with pkgs;
+    [
+      ghostty
+      firefox
+      nautilus
+      wl-clipboard
+      cliphist
+    ]
+  );
 }
