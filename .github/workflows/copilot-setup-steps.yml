@@ -33,7 +33,7 @@ jobs:
       # Node.js WITH pnpm cache (only if a pnpm-lock.yaml exists)
       - name: Install Node.js (with pnpm cache)
         if: ${{ hashFiles('**/pnpm-lock.yaml') != '' }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
           cache: 'pnpm'
@@ -43,7 +43,7 @@ jobs:
       # Node.js WITHOUT cache (no lockfile found)
       - name: Install Node.js (no cache)
         if: ${{ hashFiles('**/pnpm-lock.yaml') == '' }}
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '20'
 
