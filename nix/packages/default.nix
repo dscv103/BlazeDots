@@ -6,7 +6,7 @@
 {
   # Custom packages for BlazeDots flake
   # Add package definitions here
-  
+
   # Example:
   # my-custom-tool = pkgs.callPackage ./my-custom-tool.nix { };
 }

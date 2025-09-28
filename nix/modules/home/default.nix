@@ -4,7 +4,7 @@
 # Home Manager modules index for BlazeDots flake
 {
   # User-level Home Manager modules
-  
+
   ghostty = ./ghostty.nix;
   scm = ./scm.nix;
   shell = ./shell.nix;

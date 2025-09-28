@@ -4,7 +4,7 @@
 # NixOS modules index for BlazeDots flake
 {
   # System-level NixOS modules
-  
+
   base = ./base.nix;
   caches = ./caches.nix;
   cpu = ./cpu.nix;
