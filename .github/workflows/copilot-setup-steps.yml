@@ -2,6 +2,7 @@
 name: Copilot Setup Steps
 
 on:
+  # Let you validate it manually and whenever this file changes.
   workflow_dispatch:
   push:
     paths: [.github/workflows/copilot-setup-steps.yml]
@@ -9,6 +10,8 @@ on:
     paths: [.github/workflows/copilot-setup-steps.yml]
 
 jobs:
+  # The job name MUST be exactly `copilot-setup-steps` for the agent to run it. (Docs)
+  # Also, this workflow must live on the DEFAULT BRANCH to be picked up. (Docs)
   copilot-setup-steps:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -19,22 +22,31 @@ jobs:
       - name: Checkout (optional; agent will checkout if you don't)
         uses: actions/checkout@v5
 
-      # Install pnpm FIRST so setup-node can find it for caching
+      # ---- Runtimes & toolchain ---------------------------------------------
+
+      # 1) Put pnpm on PATH first so we can use pnpm-aware caching later
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9
           run_install: false
 
-      # Now Node + enable pnpm cache
-      - name: Install Node.js (for npx / MCPs / planning server)
+      # 2a) Node.js WITH pnpm cache (only if a pnpm-lock.yaml exists)
+      - name: Install Node.js (with pnpm cache)
+        if: ${{ hashFiles('**/pnpm-lock.yaml') != '' }}
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'pnpm'
           cache-dependency-path: |
-            pnpm-lock.yaml
             **/pnpm-lock.yaml
+
+      # 2b) Node.js WITHOUT cache (no lockfile found)
+      - name: Install Node.js (no cache)
+        if: ${{ hashFiles('**/pnpm-lock.yaml') == '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
 
       - name: Install uv (for uvx / mcp-nixos)
         uses: astral-sh/setup-uv@v6
@@ -42,6 +54,7 @@ jobs:
       - name: Install Nix (for flake builds, eval, dev shells)
         uses: cachix/install-nix-action@v27
 
+      # ---- Warm up MCP servers & CLIs (networking happens BEFORE agent firewall) ----
       - name: Preinstall mcp-ripgrep (fast code search tools)
         run: npx -y mcp-ripgrep@latest --help
 
@@ -64,6 +77,7 @@ jobs:
             echo "software-planning-mcp not found at absolute path (skipping build)"
           fi
 
+      # ---- Quick smoke checks -----------------------------------------------
       - name: Print versions
         run: |
           node -v
@@ -76,6 +90,7 @@ jobs:
         continue-on-error: true
         run: |
           nix --version
+          # If a flake exists, prove we can enter the dev shell and run Python
           if [ -f "flake.nix" ]; then
             nix develop -c python -V || true
           fi
