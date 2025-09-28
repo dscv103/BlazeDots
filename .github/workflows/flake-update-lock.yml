@@ -43,7 +43,7 @@ jobs:
 
       # Optional: cache popular Nix binaries to speed things up
       - name: Enable Magic Nix Cache
-        uses: DeterminateSystems/magic-nix-cache-action@v8
+        uses: DeterminateSystems/magic-nix-cache-action@v13
 
       - name: Configure Git author
         run: |
