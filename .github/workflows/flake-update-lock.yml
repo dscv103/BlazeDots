@@ -39,7 +39,7 @@ jobs:
 
       # Fast, reliable Nix install for CI
       - name: Install Nix
-        uses: DeterminateSystems/nix-installer-action@v14
+        uses: DeterminateSystems/nix-installer-action@v20
 
       # Optional: cache popular Nix binaries to speed things up
       - name: Enable Magic Nix Cache
