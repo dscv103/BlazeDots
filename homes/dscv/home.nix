@@ -9,7 +9,7 @@
   ...
 }:
 let
-  homeModules = inputs.self + "/nix/modules/home";
+  homeModules = inputs.self + "/modules/extra/exported/home";
   palette = {
     base = "#111111";
     surface0 = "#191919";
@@ -35,38 +35,73 @@ in
   home = {
     inherit username;
     homeDirectory = "/home/${username}";
-    stateVersion = "24.05";
-    sessionPath = [ "$HOME/.local/bin" ];
+    stateVersion  = "24.05";
+    sessionPath   = [ "$HOME/.local/bin" ];
   };
 
   home.sessionVariables = {
     EDITOR = "nvim";
     VISUAL = "nvim";
-    LANG = "en_US.UTF-8";
+    LANG   = "en_US.UTF-8";
   };
 
+  # Enable XDG so xdg.configFile maps to ~/.config/*
+  xdg.enable = true;
+
+  # Canonical owner: xdg.configFile, allow overwrite (and keep onChange from upstream)
+  xdg.configFile."noctalia/settings.json".force = lib.mkForce true;
+
+  # Disable any competing home.file definition for the same path
+  home.file.".config/noctalia/settings.json".enable = lib.mkForce false;
+
+  # POSIX-safe backup rotation before HM links files (no bashisms)
+  home.activation.rotateNoctaliaBackups =
+    lib.hm.dag.entryBefore [ "checkLinkTargets" ] ''
+      dir="$HOME/.config/noctalia"
+      mkdir -p "$dir"
+      # Expand the glob into "$@"; if it doesn't match, "$1" won't exist.
+      set -- "$dir"/settings.json.hm-bak-2025*
+      for f in "$@"; do
+        [ -e "$f" ] || continue
+        mv "$f" "$f.$(date +%F-%H%M%S)"
+      done
+    '';
+
+  # ---- Niri config ----------------------------------------------------------
   xdg.configFile."niri/config.kdl".text = ''
-    # Noctalia neutral accents
+    // Noctalia neutral accents
+    prefer-no-csd
+
     layout {
-      default-column-width = 120
-      gaps {
-        inner = 12
-        outer = 24
+      gaps 4
+      always-center-single-column
+      preset-column-widths {
+        proportion 0.33333
+        proportion 0.5
+        proportion 0.66667
       }
+      default-column-width { proportion 0.5; }
+      focus-ring { 
+        off
+      }
+      border {
+        width 2
+        active-color "#bb9af7"
+        inactive-color "#414868"
+      }
+      tab-indicator {
+        place-within-column
+        gap 4
+        width 4
+        gaps-between-tabs 4
+        corner-radius 5
+      }
+      background-color "transparent"
     }
 
-    border {
-      width = 3
-      active-color = "${palette.mauve}"
-      inactive-color = "${palette.overlay1}"
-    }
-
-    background {
-      color = "${palette.base}"
-    }
-
-    focus {
-      new-window = "latest"
+    window-rule {
+      geometry-corner-radius 5
+      clip-to-geometry true
     }
 
     binds {
@@ -105,35 +140,35 @@ in
       Mod+Ctrl+J { move-window-down; }
 
       Mod+Home { focus-column-first; }
-      Mod+End { focus-column-last; }
+      Mod+End  { focus-column-last; }
       Mod+Ctrl+Home { move-column-to-first; }
-      Mod+Ctrl+End { move-column-to-last; }
+      Mod+Ctrl+End  { move-column-to-last; }
 
-      Mod+Shift+Left { focus-monitor-left; }
+      Mod+Shift+Left  { focus-monitor-left; }
       Mod+Shift+Right { focus-monitor-right; }
-      Mod+Shift+Up { focus-monitor-up; }
-      Mod+Shift+Down { focus-monitor-down; }
+      Mod+Shift+Up    { focus-monitor-up; }
+      Mod+Shift+Down  { focus-monitor-down; }
 
-      Mod+Shift+Ctrl+Left { move-column-to-monitor-left; }
+      Mod+Shift+Ctrl+Left  { move-column-to-monitor-left; }
       Mod+Shift+Ctrl+Right { move-column-to-monitor-right; }
-      Mod+Shift+Ctrl+Up { move-column-to-monitor-up; }
-      Mod+Shift+Ctrl+Down { move-column-to-monitor-down; }
+      Mod+Shift+Ctrl+Up    { move-column-to-monitor-up; }
+      Mod+Shift+Ctrl+Down  { move-column-to-monitor-down; }
 
       // ─── Workspace Switching ───
-      Mod+WheelScrollDown cooldown-ms=150 { focus-workspace-down; }
-      Mod+WheelScrollUp cooldown-ms=150 { focus-workspace-up; }
+      Mod+WheelScrollDown  cooldown-ms=150 { focus-workspace-down; }
+      Mod+WheelScrollUp    cooldown-ms=150 { focus-workspace-up; }
       Mod+Ctrl+WheelScrollDown cooldown-ms=150 { move-column-to-workspace-down; }
-      Mod+Ctrl+WheelScrollUp cooldown-ms=150 { move-column-to-workspace-up; }
+      Mod+Ctrl+WheelScrollUp   cooldown-ms=150 { move-column-to-workspace-up; }
 
       Mod+WheelScrollRight { focus-column-right; }
-      Mod+WheelScrollLeft { focus-column-left; }
+      Mod+WheelScrollLeft  { focus-column-left; }
       Mod+Ctrl+WheelScrollRight { move-column-right; }
-      Mod+Ctrl+WheelScrollLeft { move-column-left; }
+      Mod+Ctrl+WheelScrollLeft  { move-column-left; }
 
       Mod+Shift+WheelScrollDown { focus-column-right; }
-      Mod+Shift+WheelScrollUp { focus-column-left; }
+      Mod+Shift+WheelScrollUp   { focus-column-left; }
       Mod+Ctrl+Shift+WheelScrollDown { move-column-right; }
-      Mod+Ctrl+Shift+WheelScrollUp { move-column-left; }
+      Mod+Ctrl+Shift+WheelScrollUp   { move-column-left; }
 
       Mod+1 { focus-workspace 1; }
       Mod+2 { focus-workspace 2; }
@@ -158,13 +193,13 @@ in
       Mod+Tab { focus-workspace-previous; }
 
       // ─── Layout Controls ───
-      Mod+Ctrl+F { expand-column-to-available-width; }
-      Mod+C { center-column; }
-      Mod+Ctrl+C { center-visible-columns; }
-      Mod+Minus { set-column-width "-10%"; }
-      Mod+Equal { set-column-width "+10%"; }
-      Mod+Shift+Minus { set-window-height "-10%"; }
-      Mod+Shift+Equal { set-window-height "+10%"; }
+      Mod+Ctrl+F   { expand-column-to-available-width; }
+      Mod+C        { center-column; }
+      Mod+Ctrl+C   { center-visible-columns; }
+      Mod+Minus    { set-column-width "-10%"; }
+      Mod+Equal    { set-column-width "+10%"; }
+      Mod+Shift+Minus  { set-window-height "-10%"; }
+      Mod+Shift+Equal  { set-window-height "+10%"; }
 
       // ─── Modes ───
       Mod+T { toggle-window-floating; }
@@ -179,16 +214,18 @@ in
       Mod+O repeat=false { toggle-overview; }
 
       // ─── Maintenance ───
-      Mod+Shift+U hotkey-overlay-title="Update NixOS" { spawn "bash" "-lc" "cd ~/Developer/BlazeDots && nix flake update && sudo nixos-rebuild switch --flake .#$(hostname)"; }
+      Mod+Shift+U hotkey-overlay-title="Update NixOS" {
+        spawn "bash" "-lc" "cd ~/etc/nixos && sudo nix flake update && sudo -E git -C /etc/nixos add -A && sudo -E git -C /etc/nixos commit -m 'update' && sudo nixos-rebuild switch --flake .#$(hostname)"; }
     }
 
-    indicators {
-      border {
-        focused = "${palette.mauve}"
-        idle = "${palette.overlay0}"
-        urgent = "${palette.blue}"
-      }
-    }
+    // indicators (example using palette if you enable this block)
+    // indicators {
+    //   border {
+    //     focused "${palette.mauve}"
+    //     idle    "${palette.overlay0}"
+    //     urgent  "${palette.blue}"
+    //   }
+    // }
   '';
 
   services.gpg-agent = {
@@ -217,50 +254,21 @@ in
           --bd-mauve: ${palette.mauve};
           --bd-text: ${palette.text};
         }
-
-        #navigator-toolbox,
-        #nav-bar,
-        #TabsToolbar,
-        #PersonalToolbar {
+        #navigator-toolbox, #nav-bar, #TabsToolbar, #PersonalToolbar {
           background-color: var(--bd-surface0) !important;
           color: var(--bd-text) !important;
         }
-
         .tab-background[selected="true"] {
           background-color: var(--bd-surface1) !important;
           border-bottom: 2px solid var(--bd-mauve) !important;
         }
-
-        .tab-label[selected="true"] {
-          color: var(--bd-text) !important;
-        }
-
-        .tab-background {
-          background-color: var(--bd-base) !important;
-        }
-
-        #urlbar {
-          background-color: var(--bd-surface1) !important;
-          color: var(--bd-text) !important;
-        }
-
-        #urlbar-background {
-          background-color: transparent !important;
-          border: 1px solid var(--bd-mauve) !important;
-        }
-
-        #urlbar-input,
-        #urlbar-input::-moz-placeholder {
-          color: var(--bd-text) !important;
-        }
-
-        toolbarbutton {
-          color: var(--bd-text) !important;
-        }
-
-        toolbarbutton:hover {
-          background-color: var(--bd-surface1) !important;
-        }
+        .tab-label[selected="true"] { color: var(--bd-text) !important; }
+        .tab-background { background-color: var(--bd-base) !important; }
+        #urlbar { background-color: var(--bd-surface1) !important; color: var(--bd-text) !important; }
+        #urlbar-background { background-color: transparent !important; border: 1px solid var(--bd-mauve) !important; }
+        #urlbar-input, #urlbar-input::-moz-placeholder { color: var(--bd-text) !important; }
+        toolbarbutton { color: var(--bd-text) !important; }
+        toolbarbutton:hover { background-color: var(--bd-surface1) !important; }
       '';
       userContent = ''
         @-moz-document url("about:home"), url("about:newtab") {
@@ -268,11 +276,7 @@ in
             background-color: ${palette.base} !important;
             color: ${palette.text} !important;
           }
-
-          .search-wrapper .logo-and-wordmark .wordmark {
-            fill: ${palette.text} !important;
-          }
-
+          .search-wrapper .logo-and-wordmark .wordmark { fill: ${palette.text} !important; }
           .top-sites-list .top-site-outer .tile {
             background: ${palette.surface0} !important;
             color: ${palette.text} !important;
@@ -287,14 +291,11 @@ in
     show-hidden-files = true;
   };
 
-  home.packages = lib.mkAfter (
-    with pkgs;
-    [
-      ghostty
-      firefox
-      nautilus
-      wl-clipboard
-      cliphist
-    ]
-  );
+  home.packages = lib.mkAfter (with pkgs; [
+    ghostty
+    firefox
+    nautilus
+    wl-clipboard
+    cliphist
+  ]);
 }
