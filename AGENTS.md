@@ -149,6 +149,14 @@ Use software-planning-tool MCP to draft the plan when possible.
 
 ⸻
 
+8.5. Formatting & CI
+• **Always run treefmt before committing**: `nix develop -c treefmt`
+• If CI fails on treefmt-check: 1. Run `nix develop -c treefmt --diff` to see required changes 2. Run `nix develop -c treefmt` to apply fixes 3. Commit formatting changes: `fix: apply treefmt formatting fixes`
+• **Which files are formatted**: - Nix files: `nixfmt` (indentation, spacing) - Markdown/JSON/YAML: `prettier` (quotes, trailing whitespace)
+• **Troubleshooting**: If `nix build .#checks.x86_64-linux.treefmt` fails, check for: - Mixed quote styles in YAML (prefer double quotes) - Inconsistent indentation in Nix files - Trailing whitespace or newlines
+
+⸻
+
 9. Failure handling
    • If tests cannot be run (infra/tooling gap), still open a PR with:
    • precise failure logs,
