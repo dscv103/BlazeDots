@@ -15,16 +15,16 @@
       v = "nvim";
 
       # quick "up" aliases
-      ".."    = "cd ..";
-      "..."   = "cd ../..";
-      "...."  = "cd ../../..";
+      ".." = "cd ..";
+      "..." = "cd ../..";
+      "...." = "cd ../../..";
       "....." = "cd ../../../..";
 
       # handy jumps
       "-" = "cd -";
       "~" = "cd ~";
-      pd  = "pushd";
-      po  = "popd";
+      pd = "pushd";
+      po = "popd";
     };
 
     # put functions here (needs escaping of ${...})

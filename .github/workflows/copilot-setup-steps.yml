@@ -35,8 +35,8 @@ jobs:
         if: ${{ hashFiles('**/pnpm-lock.yaml') != '' }}
         uses: actions/setup-node@v5
         with:
-          node-version: '20'
-          cache: 'pnpm'
+          node-version: "20"
+          cache: "pnpm"
           cache-dependency-path: |
             **/pnpm-lock.yaml
 
@@ -45,7 +45,7 @@ jobs:
         if: ${{ hashFiles('**/pnpm-lock.yaml') == '' }}
         uses: actions/setup-node@v5
         with:
-          node-version: '20'
+          node-version: "20"
 
       # ---- Build local MCP: tools/software-planning-mcp (if present) --------
       # Note: Only runs if tools/software-planning-mcp/package.json exists
@@ -124,7 +124,6 @@ jobs:
 
       - name: Done
         run: echo "Copilot setup complete ✅"
-
 # NOTE:
 # This workflow conditionally builds local MCP servers if they exist.
 # Currently, this repository uses external MCP servers (see mcp.json).

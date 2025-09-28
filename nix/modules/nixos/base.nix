@@ -127,7 +127,7 @@ in
         inputs
         ;
     };
- };
+  };
 
   system.stateVersion = stateVersion;
 }
