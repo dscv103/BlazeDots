@@ -2,7 +2,7 @@
 name: Copilot Setup Steps
 
 on:
-  # Let you validate it manually and whenever this file changes.
+  # Run manually or when this file changes (PRs or pushes)
   workflow_dispatch:
   push:
     paths: [.github/workflows/copilot-setup-steps.yml]
@@ -10,8 +10,7 @@ on:
     paths: [.github/workflows/copilot-setup-steps.yml]
 
 jobs:
-  # The job name MUST be exactly `copilot-setup-steps` for the agent to run it. (Docs)
-  # Also, this workflow must live on the DEFAULT BRANCH to be picked up. (Docs)
+  # Must be exactly this name for Copilot to pick it up
   copilot-setup-steps:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -22,16 +21,16 @@ jobs:
       - name: Checkout (optional; agent will checkout if you don't)
         uses: actions/checkout@v5
 
-      # ---- Runtimes & toolchain ---------------------------------------------
+      # ---- Node / pnpm (Option A: guard cache on lockfile presence) ---------
 
-      # 1) Put pnpm on PATH first so we can use pnpm-aware caching later
+      # Put pnpm on PATH first so setup-node can use pnpm-aware caching later
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9
           run_install: false
 
-      # 2a) Node.js WITH pnpm cache (only if a pnpm-lock.yaml exists)
+      # Node.js WITH pnpm cache (only if a pnpm-lock.yaml exists)
       - name: Install Node.js (with pnpm cache)
         if: ${{ hashFiles('**/pnpm-lock.yaml') != '' }}
         uses: actions/setup-node@v4
@@ -41,12 +40,42 @@ jobs:
           cache-dependency-path: |
             **/pnpm-lock.yaml
 
-      # 2b) Node.js WITHOUT cache (no lockfile found)
+      # Node.js WITHOUT cache (no lockfile found)
       - name: Install Node.js (no cache)
         if: ${{ hashFiles('**/pnpm-lock.yaml') == '' }}
         uses: actions/setup-node@v4
         with:
           node-version: '20'
+
+      # ---- Build local MCP: tools/software-planning-mcp (if present) --------
+      # Note: Only runs if tools/software-planning-mcp/package.json exists
+
+      # Install deps & build the local MCP so build/index.js exists
+      - name: Build software-planning MCP
+        if: ${{ hashFiles('tools/software-planning-mcp/package.json') != '' }}
+        working-directory: tools/software-planning-mcp
+        shell: bash
+        run: |
+          set -euo pipefail
+          if command -v pnpm >/dev/null 2>&1; then
+            pnpm install --frozen-lockfile || pnpm install
+            pnpm build
+          else
+            npm ci
+            npm run build
+          fi
+          test -f build/index.js || { echo "ERROR: build/index.js missing"; exit 1; }
+
+      # Sanity check path & entrypoint (avoid `${{ }}` / `$VARS}` in mcp.json)
+      - name: MCP path sanity check
+        if: ${{ hashFiles('tools/software-planning-mcp/package.json') != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          ls -la tools/software-planning-mcp/build
+          node ./tools/software-planning-mcp/build/index.js --help || true
+
+      # ---- Other toolchains (optional) --------------------------------------
 
       - name: Install uv (for uvx / mcp-nixos)
         uses: astral-sh/setup-uv@v6
@@ -54,30 +83,29 @@ jobs:
       - name: Install Nix (for flake builds, eval, dev shells)
         uses: cachix/install-nix-action@v27
 
-      # ---- Warm up MCP servers & CLIs (networking happens BEFORE agent firewall) ----
+      # Warm up MCP/CLIs BEFORE Copilot agent firewall applies
       - name: Preinstall mcp-ripgrep (fast code search tools)
         run: npx -y mcp-ripgrep@latest --help
 
       - name: Preinstall mcp-nixos wheel
         run: uvx -q mcp-nixos --help
 
+      # Optional: global install of sequential-thinking server
       - name: Preinstall sequential-thinking server (optional)
         run: npm i -g @modelcontextprotocol/server-sequential-thinking
 
-      - name: Prebuild software-planning MCP (optional)
+      # Example: prebuild a separate MCP if you have one (adjust/remove as needed)
+      - name: Prebuild software-planning MCP (redundant guard; safe to keep)
         shell: bash
         run: |
-          set -e
-          if [ -f "/absolute/path/to/software-planning-mcp/package.json" ]; then
-            pushd /absolute/path/to/software-planning-mcp
-            npm ci
-            npm run build
-            popd
+          if [ -f "tools/software-planning-mcp/package.json" ]; then
+            echo "software-planning-mcp already built above (skipping)"
           else
-            echo "software-planning-mcp not found at absolute path (skipping build)"
+            echo "tools/software-planning-mcp not found (skipping)"
           fi
 
       # ---- Quick smoke checks -----------------------------------------------
+
       - name: Print versions
         run: |
           node -v
@@ -90,10 +118,23 @@ jobs:
         continue-on-error: true
         run: |
           nix --version
-          # If a flake exists, prove we can enter the dev shell and run Python
           if [ -f "flake.nix" ]; then
             nix develop -c python -V || true
           fi
 
       - name: Done
         run: echo "Copilot setup complete ✅"
+
+# NOTE:
+# This workflow conditionally builds local MCP servers if they exist.
+# Currently, this repository uses external MCP servers (see mcp.json).
+# If you add a local MCP server like tools/software-planning-mcp, reference it in mcp.json like:
+# {
+#   "mcpServers": {
+#     "software-planning-tool": {
+#       "command": "node",
+#       "args": ["./tools/software-planning-mcp/build/index.js"]
+#     }
+#   }
+# }
+# Do NOT use GitHub Actions expressions (${{ ... }}) or env vars ($VAR) in mcp.json.
