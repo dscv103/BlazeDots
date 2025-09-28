@@ -50,7 +50,7 @@
       systems = [ "x86_64-linux" ];
 
       imports = [
-        ./parts
+        ./nix/parts
         ./hosts
       ];
 
