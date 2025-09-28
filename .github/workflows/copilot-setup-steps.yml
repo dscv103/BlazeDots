@@ -2,7 +2,6 @@
 name: Copilot Setup Steps
 
 on:
-  # Run manually or when this file changes (PRs or pushes)
   workflow_dispatch:
   push:
     paths: [.github/workflows/copilot-setup-steps.yml]
@@ -10,7 +9,6 @@ on:
     paths: [.github/workflows/copilot-setup-steps.yml]
 
 jobs:
-  # Must be exactly this name for Copilot to pick it up
   copilot-setup-steps:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -21,15 +19,13 @@ jobs:
       - name: Checkout (optional; agent will checkout if you don't)
         uses: actions/checkout@v5
 
-      # ---- Node / pnpm (Option A: guard cache on lockfile presence) ---------
-
+      # ---- Node / pnpm ------------------------------------------------------
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9
           run_install: false
 
-      # Node.js WITH pnpm cache (only if a pnpm-lock.yaml exists)
       - name: Install Node.js (with pnpm cache)
         if: ${{ hashFiles('**/pnpm-lock.yaml') != '' }}
         uses: actions/setup-node@v5
@@ -39,16 +35,13 @@ jobs:
           cache-dependency-path: |
             **/pnpm-lock.yaml
 
-      # Node.js WITHOUT cache (no lockfile found)
       - name: Install Node.js (no cache)
         if: ${{ hashFiles('**/pnpm-lock.yaml') == '' }}
         uses: actions/setup-node@v5
         with:
           node-version: '20'
 
-      # ---- Build local MCP: tools/software-planning-mcp (if present) --------
-      # Note: Only runs if tools/software-planning-mcp/package.json exists
-
+      # ---- Build local MCP if present ---------------------------------------
       - name: Build software-planning MCP
         if: ${{ hashFiles('tools/software-planning-mcp/package.json') != '' }}
         working-directory: tools/software-planning-mcp
@@ -72,9 +65,8 @@ jobs:
             exit 1
           fi
 
-      # Create a launcher that resolves entrypoint from repo paths (not _temp)
+      # ---- Create launcher (repo copy) --------------------------------------
       - name: Create launcher for software-planning MCP
-        if: ${{ hashFiles('tools/software-planning-mcp/package.json') != '' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -85,8 +77,12 @@ jobs:
           const path = require("path");
           const { spawn } = require("child_process");
 
-          // Resolve relative to this file (stable regardless of CWD)
-          const root = path.resolve(__dirname, "..", "..");
+          // Prefer the real workspace path if provided by GitHub Actions.
+          // Fallback to path relative to this file.
+          const workspace = process.env.GITHUB_WORKSPACE;
+          const root = workspace ? path.resolve(workspace)
+                                 : path.resolve(__dirname, "..", "..");
+
           const mcpDir = path.join(root, "tools", "software-planning-mcp");
 
           const candidates = [
@@ -107,35 +103,45 @@ jobs:
           EOF
           chmod +x .github/mcp/launch-software-planning.js
 
-      # Sanity check via the same launcher Copilot will use
-      - name: MCP path sanity check (use launcher)
-        if: ${{ hashFiles('tools/software-planning-mcp/package.json') != '' }}
+      # ---- Mirror launcher into RUNNER_TEMP for Copilot's _temp CWD ---------
+      - name: Mirror launcher into $RUNNER_TEMP for Copilot
         shell: bash
         run: |
           set -euo pipefail
-          node .github/mcp/launch-software-planning.js --help || true
+          echo "RUNNER_TEMP=${RUNNER_TEMP}"
+          mkdir -p "${RUNNER_TEMP}/.github/mcp"
+          cp -f .github/mcp/launch-software-planning.js "${RUNNER_TEMP}/.github/mcp/launch-software-planning.js"
+          chmod +x "${RUNNER_TEMP}/.github/mcp/launch-software-planning.js"
+          # Show where both copies live
+          ls -la .github/mcp || true
+          ls -la "${RUNNER_TEMP}/.github/mcp" || true
+
+      # ---- Sanity-check both paths ------------------------------------------
+      - name: Sanity check (repo path)
+        shell: bash
+        run: node .github/mcp/launch-software-planning.js --help || true
+
+      - name: Sanity check (temp path Copilot uses)
+        shell: bash
+        run: node "${RUNNER_TEMP}/.github/mcp/launch-software-planning.js" --help || true
 
       # ---- Other toolchains (optional) --------------------------------------
-
       - name: Install uv (for uvx / mcp-nixos)
         uses: astral-sh/setup-uv@v6
 
       - name: Install Nix (for flake builds, eval, dev shells)
         uses: cachix/install-nix-action@v31
 
-      # Warm up MCP/CLIs BEFORE Copilot agent firewall applies
       - name: Preinstall mcp-ripgrep (fast code search tools)
         run: npx -y mcp-ripgrep@latest --help
 
       - name: Preinstall mcp-nixos wheel
         run: uvx -q mcp-nixos --help
 
-      # Optional: global install of sequential-thinking server
       - name: Preinstall sequential-thinking server (optional)
         run: npm i -g @modelcontextprotocol/server-sequential-thinking
 
       # ---- Quick smoke checks -----------------------------------------------
-
       - name: Print versions
         run: |
           node -v
@@ -154,15 +160,3 @@ jobs:
 
       - name: Done
         run: echo "Copilot setup complete ✅"
-
-# NOTE:
-# Point mcp.json at the launcher, e.g.:
-# {
-#   "mcpServers": {
-#     "software-planning-tool": {
-#       "command": "node",
-#       "args": [".github/mcp/launch-software-planning.js"]
-#     }
-#   }
-# }
-# Do NOT use GitHub Actions expressions (${{ ... }) or env vars ($VAR) inside mcp.json.
