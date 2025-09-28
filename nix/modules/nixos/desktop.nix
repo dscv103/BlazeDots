@@ -24,7 +24,6 @@
   environment.systemPackages = lib.mkAfter (
     with pkgs;
     [
-      foot
       grim
       slurp
       swaybg
@@ -38,6 +37,7 @@
     noto-fonts
     noto-fonts-emoji
     jetbrains-mono
+    nerd-fonts.monaspace
   ];
 
   xdg.portal = {
