@@ -91,7 +91,7 @@ sops secrets/secrets.yaml
 ```
 
 > Create the `secrets/` directory if it does not already exist—this path matches the default defined in
-> [`modules/core/common/sops.nix`](../modules/core/common/sops.nix).
+> [`nix/modules/nixos/sops.nix`](../nix/modules/nixos/sops.nix).
 
 Inside the editor opened by SOPS, insert the keys you need, such as:
 
@@ -200,7 +200,7 @@ Alternatively, if you rely on SSH host keys for decryption, ensure `/etc/ssh` is
 ```
 
 The existing module already creates `/var/lib/sops-nix` with suitable permissions (see
-[`modules/core/common/sops.nix`](../modules/core/common/sops.nix)).
+[`nix/modules/nixos/sops.nix`](../nix/modules/nixos/sops.nix)).
 
 ---
 
