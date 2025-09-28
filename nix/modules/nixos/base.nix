@@ -11,7 +11,7 @@ let
   userFullName = "dscv103";
   gitName = "dscv103";
   gitEmail = "dvitrano@me.com";
-  gitUseSshSigning = true;
+  gitUseSshSigning = false;
   timezone = "America/Chicago";
   locale = "en_US.UTF-8";
   keyboardLayout = "us";
@@ -34,13 +34,6 @@ in
       "root"
       username
     ];
-  };
-
-  # Automated garbage collection for better disk management
-  nix.gc = {
-    automatic = true;
-    dates = "weekly";
-    options = "--delete-older-than 14d";
   };
 
   time.timeZone = timezone;
@@ -123,6 +116,7 @@ in
   home-manager = {
     useGlobalPkgs = true;
     useUserPackages = true;
+    backupFileExtension = "hm-bak-2025";
     users.${username} = import (inputs.self + "/homes/${username}/home.nix");
     extraSpecialArgs = {
       inherit
@@ -133,7 +127,7 @@ in
         inputs
         ;
     };
-  };
+ };
 
   system.stateVersion = stateVersion;
 }
