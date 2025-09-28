@@ -7,12 +7,38 @@
     enableCompletion = true;
     autosuggestion.enable = true;
     syntaxHighlighting.enable = true;
+
     shellAliases = {
       ls = "ls --color=auto";
       ll = "ls -alF";
       gs = "git status";
       v = "nvim";
+
+      # quick "up" aliases
+      ".."    = "cd ..";
+      "..."   = "cd ../..";
+      "...."  = "cd ../../..";
+      "....." = "cd ../../../..";
+
+      # handy jumps
+      "-" = "cd -";
+      "~" = "cd ~";
+      pd  = "pushd";
+      po  = "popd";
     };
+
+    # put functions here (needs escaping of ${...})
+    initContent = ''
+      up() {
+        local n=''${1:-1}
+        (( n >= 1 )) || { echo "usage: up [levels>=1]"; return 1; }
+        local p=""
+        for ((i=0; i<n; i++)); do p+="../"; done
+        cd "$p"
+      }
+      # completion like `cd`
+      compdef _cd up
+    '';
   };
 
   programs.direnv = {
