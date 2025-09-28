@@ -23,7 +23,6 @@ jobs:
 
       # ---- Node / pnpm (Option A: guard cache on lockfile presence) ---------
 
-      # Put pnpm on PATH first so setup-node can use pnpm-aware caching later
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -50,7 +49,6 @@ jobs:
       # ---- Build local MCP: tools/software-planning-mcp (if present) --------
       # Note: Only runs if tools/software-planning-mcp/package.json exists
 
-      # Install deps & build the local MCP so build/index.js exists
       - name: Build software-planning MCP
         if: ${{ hashFiles('tools/software-planning-mcp/package.json') != '' }}
         working-directory: tools/software-planning-mcp
@@ -59,21 +57,63 @@ jobs:
           set -euo pipefail
           if command -v pnpm >/dev/null 2>&1; then
             pnpm install --frozen-lockfile || pnpm install
-            pnpm build
+            pnpm build || pnpm run build
           else
             npm ci
             npm run build
           fi
-          test -f build/index.js || { echo "ERROR: build/index.js missing"; exit 1; }
+          if [ -f build/index.js ]; then
+            echo "OK: build/index.js"
+          elif [ -f dist/index.js ]; then
+            echo "OK: dist/index.js"
+          else
+            echo "ERROR: neither build/index.js nor dist/index.js exists"
+            ls -R .
+            exit 1
+          fi
 
-      # Sanity check path & entrypoint (avoid `${{ }}` / `$VARS}` in mcp.json)
-      - name: MCP path sanity check
+      # Create a launcher that resolves entrypoint from repo paths (not _temp)
+      - name: Create launcher for software-planning MCP
         if: ${{ hashFiles('tools/software-planning-mcp/package.json') != '' }}
         shell: bash
         run: |
           set -euo pipefail
-          ls -la tools/software-planning-mcp/build
-          node ./tools/software-planning-mcp/build/index.js --help || true
+          mkdir -p .github/mcp
+          cat > .github/mcp/launch-software-planning.js <<'EOF'
+          #!/usr/bin/env node
+          const fs = require("fs");
+          const path = require("path");
+          const { spawn } = require("child_process");
+
+          // Resolve relative to this file (stable regardless of CWD)
+          const root = path.resolve(__dirname, "..", "..");
+          const mcpDir = path.join(root, "tools", "software-planning-mcp");
+
+          const candidates = [
+            process.env.SPMCP_ENTRY,                      // optional override
+            path.join(mcpDir, "build", "index.js"),
+            path.join(mcpDir, "dist", "index.js"),
+          ].filter(Boolean);
+
+          const entry = candidates.find(p => p && fs.existsSync(p));
+          if (!entry) {
+            console.error("ERROR: software-planning MCP entrypoint not found.");
+            console.error("Tried:", candidates);
+            process.exit(1);
+          }
+
+          spawn(process.execPath, [entry, ...process.argv.slice(2)], { stdio: "inherit" })
+            .on("exit", code => process.exit(code));
+          EOF
+          chmod +x .github/mcp/launch-software-planning.js
+
+      # Sanity check via the same launcher Copilot will use
+      - name: MCP path sanity check (use launcher)
+        if: ${{ hashFiles('tools/software-planning-mcp/package.json') != '' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node .github/mcp/launch-software-planning.js --help || true
 
       # ---- Other toolchains (optional) --------------------------------------
 
@@ -93,16 +133,6 @@ jobs:
       # Optional: global install of sequential-thinking server
       - name: Preinstall sequential-thinking server (optional)
         run: npm i -g @modelcontextprotocol/server-sequential-thinking
-
-      # Example: prebuild a separate MCP if you have one (adjust/remove as needed)
-      - name: Prebuild software-planning MCP (redundant guard; safe to keep)
-        shell: bash
-        run: |
-          if [ -f "tools/software-planning-mcp/package.json" ]; then
-            echo "software-planning-mcp already built above (skipping)"
-          else
-            echo "tools/software-planning-mcp not found (skipping)"
-          fi
 
       # ---- Quick smoke checks -----------------------------------------------
 
@@ -126,15 +156,13 @@ jobs:
         run: echo "Copilot setup complete ✅"
 
 # NOTE:
-# This workflow conditionally builds local MCP servers if they exist.
-# Currently, this repository uses external MCP servers (see mcp.json).
-# If you add a local MCP server like tools/software-planning-mcp, reference it in mcp.json like:
+# Point mcp.json at the launcher, e.g.:
 # {
 #   "mcpServers": {
 #     "software-planning-tool": {
 #       "command": "node",
-#       "args": ["./tools/software-planning-mcp/build/index.js"]
+#       "args": [".github/mcp/launch-software-planning.js"]
 #     }
 #   }
 # }
-# Do NOT use GitHub Actions expressions (${{ ... }}) or env vars ($VAR) in mcp.json.
+# Do NOT use GitHub Actions expressions (${{ ... }) or env vars ($VAR) inside mcp.json.
