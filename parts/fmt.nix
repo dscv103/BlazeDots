@@ -21,11 +21,43 @@
         ];
       };
 
+      # Add proper checks for linting and formatting
+      checks = {
+        # Nix linting with statix (opinionated lints)
+        statix = pkgs.runCommand "statix-check" { buildInputs = [ pkgs.statix ]; } ''
+          cd ${./.}/..
+          statix check .
+          touch $out
+        '';
+
+        # Dead code detection with deadnix
+        deadnix = pkgs.runCommand "deadnix-check" { buildInputs = [ pkgs.deadnix ]; } ''
+          cd ${./.}/..
+          deadnix --fail .
+          touch $out
+        '';
+      };
+
       treefmt = {
         projectRootFile = "flake.nix";
-        programs.nixfmt = {
-          enable = true;
-          package = pkgs.nixfmt;
+        programs = {
+          # Nix formatting
+          nixfmt = {
+            enable = true;
+            package = pkgs.nixfmt;
+          };
+
+          # Markdown formatting
+          prettier = {
+            enable = true;
+            includes = [
+              "*.md"
+              "*.json"
+              "*.yml"
+              "*.yaml"
+            ];
+            excludes = [ "flake.lock" ];
+          };
         };
       };
     };

@@ -283,4 +283,3 @@ Copy this list into your workflow as needed:
   `sops-nix.service` (systemd or systemd-user).
 - **Whole-file mounts:** set `key = ""` to obtain the entire decrypted document.
 - **Formats:** YAML, JSON, INI, dotenv, and binary files are supported.
-

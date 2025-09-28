@@ -1,10 +1,13 @@
 # @managed-by: nixos-config-generator
+
 # Do not edit without understanding overwrite policy.
+
 # BlazeDots NixOS Configuration
 
 This repository contains a flake-parts based NixOS configuration for the host **blazar** with Home Manager integration. The layout keeps reusable modules under `modules/` and exposes them via `flake.modules` so they can be pulled into other flakes if desired.
 
 ## Structure Highlights
+
 - `flake.nix` wires flake-parts, imports `./parts` and `./hosts`, and renders `nixosConfigurations.blazar`.
 - `parts/` modules supply developer tooling, binary cache settings, and module exports.
 - `modules/core/common/` holds system modules (base, CPU, kernel, desktop, NVIDIA, SOPS, impermanence, disko shim).
@@ -42,6 +45,7 @@ Follow these steps to activate the project shell defined in `devenv.nix`.
 ## Installation Runbook
 
 ### Pre-installation Checklist
+
 - Download the latest x86_64 NixOS installer ISO and write it to a USB drive or other boot medium.
 - Back up any data on the target disk before proceeding; the Disko profile at `hosts/blazar/modules/disko.nix` will repartition `disk.main.device` (defaults to `/dev/nvme0n1`).
 - Review `hosts/blazar/modules/disko.nix` and adjust the `device`, partition sizes, or subvolume list so it matches the hardware you intend to install on.
@@ -50,6 +54,7 @@ Follow these steps to activate the project shell defined in `devenv.nix`.
 - If you rely on SOPS-encrypted secrets, have the AGE private key available so you can place it at `/var/lib/sops-nix/key.txt` during the installation.
 
 ### During Installation
+
 1. Boot the NixOS installer, log in as `root`, and enable Git in the live environment: `nix-shell -p git`.
 2. Clone this repository into the live environment (for example `git clone <repo-url> /tmp/BlazeDots`) and review any host-specific adjustments you need.
 3. Enable Flakes with `export NIX_CONFIG="experimental-features = nix-command flakes"`.
@@ -63,6 +68,7 @@ Follow these steps to activate the project shell defined in `devenv.nix`.
 11. Create a password for the normal user defined in `modules/core/common/base.nix`: `passwd dscv` (run inside `nixos-enter --root /mnt` if you exited the chroot).
 
 ### Post-installation Tasks
+
 - Reboot into the new system (`reboot`) and remove the installation media when prompted.
 - Log in as `dscv`, run `sudo nixos-rebuild switch --flake /etc/nixos#blazar`, and confirm the generation completes without errors.
 - Restore SOPS material if required (e.g., re-copy the AGE key to `/var/lib/sops-nix/key.txt` once the system is up).
@@ -76,16 +82,21 @@ Follow the step-by-step guide in [`docs/sops-nix-setup.md`](docs/sops-nix-setup.
 encrypt secrets, and integrate them with the existing `blazar` host configuration.
 
 ## Hash Placeholders
+
 Whenever you introduce a new remote source, replace any `lib.fakeSha256` with the real hash:
+
 ```bash
 nix store prefetch-file "<URL>" --json | jq -r '.hash'
 ```
 
 ## Formatting & CI
+
 Use `nix fmt` (via `nix fmt` or `nix fmt .`) to format files. CI is provided under `.github/workflows/nix-ci.yml` to lint the flake on push using the stable channel.
 
 ## Validation Workflow
+
 After editing modules:
+
 ```bash
 nix fmt || true
 nix flake metadata
@@ -93,32 +104,42 @@ nix eval .#nixosConfigurations."blazar".config.system.build.toplevel.drvPath
 ```
 
 ## Smoke Build
+
 To ensure the system builds without switching:
+
 ```bash
 sudo nixos-rebuild build --flake .#"blazar"
 ```
 
 ## Hardware Stub
+
 Replace the placeholder hardware configuration before deploying:
+
 ```bash
 sudo nixos-generate-config --show-hardware-config > hosts/blazar/hardware-configuration.nix
 git add hosts/blazar/hardware-configuration.nix
 ```
 
 ## Disko Warning
+
 Disko files are **scaffold-only**. Running Disko against the wrong device is destructive; it repartitions disks, (re-)creates the LUKS2 container, and lays down fresh filesystems. Review and adjust `hosts/blazar/modules/disko.nix` before using it.
 
 ## Impermanence Notes
+
 The system mounts the `@persist` Btrfs subvolume at `/persist` and keeps critical state (logs, SSH keys, NetworkManager profiles) across reboots. Home Manager stores user-level persist data under the same mount.
 
 ## Niri + NVIDIA Caveats
+
 Ensure Wayland sessions run with DRM KMS enabled:
+
 ```nix
 hardware.nvidia.modesetting.enable = true;
 services.displayManager.sddm.wayland.enable = true;
 boot.kernelParams = [ "nvidia-drm.modeset=1" ];
 ```
+
 Expect compositor glitches on proprietary drivers; keep firmware and drivers up to date.
 
 ## Hash Acquisition Reminder
+
 Any time you add external archives or binary cache sources, compute hashes with `nix store prefetch-file` as shown above before committing changes.

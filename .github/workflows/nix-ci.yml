@@ -1,5 +1,3 @@
-# @managed-by: nixos-config-generator
-# Do not edit without understanding overwrite policy.
 name: Nix CI
 
 on:
@@ -14,14 +12,40 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+
       - name: Install Nix
         uses: cachix/install-nix-action@v31
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
+
+      # Cache Nix store to speed up builds
+      - name: Cache Nix store
+        uses: actions/cache@v4
+        with:
+          path: |
+            /nix/store
+            ~/.cache/nix
+          key: nix-${{ runner.os }}-${{ hashFiles('flake.lock') }}
+          restore-keys: |
+            nix-${{ runner.os }}-
+
       - name: Show flake metadata
         run: nix flake metadata
-      - name: Format check
-        run: nix fmt || true
+
+      # Run all flake checks (includes formatting, linting)
+      - name: Run flake checks
+        run: nix flake check --impure --all-systems
+
+      # Ensure formatting is applied (strict check)
+      - name: Check formatting
+        run: |
+          nix fmt
+          if [[ $(git diff --name-only) ]]; then
+            echo "Files need formatting:"
+            git diff --name-only
+            exit 1
+          fi
+
       - name: Evaluate system derivation
         run: nix eval .#nixosConfigurations."blazar".config.system.build.toplevel.drvPath
