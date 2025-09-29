@@ -30,7 +30,7 @@ jobs:
             experimental-features = nix-command flakes
 
       - name: Configure Nix cache
-        uses: DeterminateSystems/magic-nix-cache-action@v2
+        uses: DeterminateSystems/magic-nix-cache-action@v13
 
       - name: Verify formatting
         run: nix develop -c treefmt --check
