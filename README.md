@@ -22,18 +22,19 @@ Follow these steps to activate the project shell defined in `devenv.nix`.
 1. Install the prerequisites (once per machine):
    ```bash
    nix profile install nixpkgs#direnv
+   nix profile install nixpkgs#nix-direnv
    nix profile install github:cachix/devenv/v1.9
    ```
    Add `eval "$(direnv hook bash)"` (or `... zsh`) to your shell rc if you have not already.
-   
+
    > **Note**: We pin to a specific devenv version (v1.9) instead of using `latest` to avoid lock file churn that would require `--no-write-lock-file` when entering the shell.
-2. Create an `.envrc` in the repository root with the single line `use devenv` and allow it:
+2. Create an `.envrc` in the repository root with the single line `use flake . --no-pure-eval` and allow it:
    ```bash
-   echo 'use devenv' > .envrc
+   echo 'use flake . --no-pure-eval' > .envrc
    direnv allow
    ```
-   Direnv now auto-loads the shell whenever you enter the directory. The `.envrc` file is gitignored so it won't be committed to the repository.
-3. To launch manually without Direnv, run `devenv shell` from the repo root, or use the flake dev shell with `nix develop`.
+   This relies on [`nix-direnv`](https://github.com/nix-community/nix-direnv) to evaluate the flake-based shell without touching the lock file. The `.envrc` file is gitignored so it won't be committed to the repository.
+3. To launch manually without Direnv, run `nix develop --no-pure-eval` from the repo root, or use `devenv shell` for the CLI-managed environment.
 4. Verify the bundled tooling the first time you enter the shell:
    ```bash
    sapling --version

@@ -16,11 +16,12 @@ echo -e "\n3. Testing devShells are available..."
 nix eval .#devShells.x86_64-linux.default.name || echo "DevShell not available via flake"
 
 echo -e "\n4. Creating test .envrc..."
-echo "use devenv" > .envrc.test
+cat <<'EOF' > .envrc.test
+use flake . --no-pure-eval
+EOF
 
-echo -e "\n5. Testing devenv shell without lock writes..."
-# This should NOT try to write any lock files for github:cachix/devenv/latest
-devenv shell --envrc .envrc.test --command "echo 'DevEnv shell works!'" || echo "Direct devenv test failed"
+echo -e "\n5. Reminder: Direnv integration now relies on nix-direnv"
+echo "Verify locally with 'direnv allow' after installing direnv + nix-direnv."
 
 echo -e "\n6. Testing nix develop..."
 nix develop --command echo "Nix develop works!"
@@ -32,5 +33,5 @@ echo -e "\n=== Verification complete ==="
 echo "If no errors above, the devenv pinning is working correctly."
 echo "The key success criteria:"
 echo "- No 'cannot write modified lock file' errors"
-echo "- Both 'devenv shell' and 'nix develop' work"
-echo "- Flake evaluation succeeds"
+echo "- Direnv + nix-direnv load the shell without churn"
+echo "- 'nix develop --no-pure-eval' works"

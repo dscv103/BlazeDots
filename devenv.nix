@@ -2,6 +2,10 @@
 {
   name = "blazedots";
 
+  # Direnv integration is handled externally via nix-direnv (`use flake . --no-pure-eval`)
+  # so no devenv-specific direnv options are defined here. This keeps the module
+  # compatible with devenv v1.9+, which dropped the `direnv` attribute.
+
   packages = [
     pkgs.git
     pkgs.jq
@@ -51,15 +55,6 @@
       package = pkgs.nodejs_20;
       npm.enable = true;
     };
-  };
-
-  direnv = {
-    enable = true;
-    watchPaths = [
-      "devenv.nix"
-      "flake.nix"
-      "flake.lock"
-    ];
   };
 
   vscode = {
