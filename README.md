@@ -22,9 +22,11 @@ Follow these steps to activate the project shell defined in `devenv.nix`.
 1. Install the prerequisites (once per machine):
    ```bash
    nix profile install nixpkgs#direnv
-   nix profile install github:cachix/devenv/latest
+   nix profile install github:cachix/devenv/v1.9
    ```
    Add `eval "$(direnv hook bash)"` (or `... zsh`) to your shell rc if you have not already.
+   
+   > **Note**: We pin to a specific devenv version (v1.9) instead of using `latest` to avoid lock file churn that would require `--no-write-lock-file` when entering the shell.
 2. Create an `.envrc` in the repository root with the single line `use devenv` and allow it:
    ```bash
    echo 'use devenv' > .envrc
