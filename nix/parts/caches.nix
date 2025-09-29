@@ -16,23 +16,23 @@ _: {
       "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw="
       "pre-commit-hooks.cachix.org-1:Pkk3Panw5AW24TOv6kz3PvLhlH8puAsJTBbOPmBo7Rc="
     ];
-    
+
     # Performance optimizations
     max-jobs = "auto";
     cores = 0;
-    
+
     # Build optimization settings
     keep-outputs = true;
     keep-derivations = true;
-    
+
     # Network and download optimizations
     connect-timeout = 5;
     stalled-download-timeout = 90;
     download-attempts = 3;
-    
-    # Evaluation optimizations  
+
+    # Evaluation optimizations
     eval-cache = true;
-    
+
     # Build log optimization
     log-lines = 25;
   };
