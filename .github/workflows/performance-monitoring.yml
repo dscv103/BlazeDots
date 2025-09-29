@@ -14,30 +14,24 @@ permissions:
   pull-requests: write
 
 jobs:
+  guard:
+    uses: ./.github/workflows/ci-skip-guard.yml
+
   collect-metrics:
     name: Collect Performance Metrics
-    runs-on: ubuntu-latest
-    if: >
-      (
-        (
-          github.event_name != 'push' &&
-          github.event_name != 'pull_request'
-        ) ||
-        (
-          github.event_name == 'push' &&
-          !contains(github.event.head_commit.message, '[skip ci]')
-        ) ||
-        (
-          github.event_name == 'pull_request' &&
-          !contains(github.event.pull_request.title, '[skip ci]')
-        )
-      ) &&
+    needs: guard
+    if: |
+      needs.guard.outputs.should-run == 'true' &&
       (
         github.event_name != 'workflow_run' ||
         github.event.workflow_run.conclusion == 'success'
       )
-    
+    runs-on: ubuntu-latest
+
     steps:
+      - name: Explain guard decision
+        run: echo "CI run guard: ${{ needs.guard.outputs.reason }}"
+
       - name: Checkout
         uses: actions/checkout@v5
 
