@@ -37,7 +37,6 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            /nix/store
             ~/.cache/nix
           key: nix-discovery-v2-${{ runner.os }}-${{ hashFiles('flake.lock') }}-${{ hashFiles('flake.nix', 'hosts/**/*.nix') }}
           restore-keys: |
@@ -61,7 +60,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        host: ${{ fromJSON(needs.discover.outputs.hosts) }}
+        host: ${{ fromJSON(needs.discover.outputs.hosts || '[]') }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -79,7 +78,6 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            /nix/store
             ~/.cache/nix
           key: nix-build-v2-${{ matrix.host }}-${{ runner.os }}-${{ hashFiles('flake.lock') }}-${{ hashFiles('hosts/${{ matrix.host }}/**/*.nix', 'nix/**/*.nix') }}
           restore-keys: |
