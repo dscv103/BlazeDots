@@ -112,4 +112,4 @@ jobs:
           nix --version
 
       - name: Done
-        run: echo "Environment ready: MCP servers preflighted; nixfmt-rfc, deadnix, statix, flake check, and NixOS build completed ✅"
+        run: 'echo "Environment ready: MCP servers preflighted; nixfmt-rfc, deadnix, statix, flake check, and NixOS build completed ✅"'
