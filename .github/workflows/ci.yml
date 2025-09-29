@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Format, lint, and build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: DeterminateSystems/nix-installer-action@v4
+        with:
+          extra-conf: |
+            experimental-features = nix-command flakes
+
+      - name: Configure Nix cache
+        uses: DeterminateSystems/magic-nix-cache-action@v2
+
+      - name: Verify formatting
+        run: nix develop -c treefmt --check
+
+      - name: Run flake checks
+        run: nix develop -c nix flake check
+
+      - name: Build NixOS system
+        run: nix build .#nixosConfigurations.blazar.config.system.build.toplevel
