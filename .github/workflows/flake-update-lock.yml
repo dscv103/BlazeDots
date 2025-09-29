@@ -37,9 +37,14 @@ jobs:
         with:
           fetch-depth: 0
 
-      # Fast, reliable Nix install for CI
-      - name: Install Nix
+      # Fast, reliable Nix install for CI with caching optimization
+      - name: Install Nix (optimized)
         uses: DeterminateSystems/nix-installer-action@v20
+        with:
+          extra-conf: |
+            max-jobs = auto
+            cores = 0
+            keep-outputs = true
 
       # Optional: cache popular Nix binaries to speed things up
       - name: Enable Magic Nix Cache
@@ -50,28 +55,65 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Update flake.lock
+      - name: Update flake.lock with performance monitoring
         id: update
         shell: bash
         run: |
           set -euo pipefail
+          echo "::group::Flake Update Process"
+          start_time=$(date +%s)
+          
           if [[ -n "${{ github.event.inputs.input_name || '' }}" ]]; then
-            echo "Updating only input: ${{ github.event.inputs.input_name }}"
+            echo "🎯 Updating only input: ${{ github.event.inputs.input_name }}"
             nix flake lock --update-input "${{ github.event.inputs.input_name }}"
           else
-            echo "Updating all inputs"
+            echo "🔄 Updating all inputs"
             nix flake update
           fi
 
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+          echo "Update completed in ${duration}s"
+
+          # Check for changes and report details
           if git diff --quiet -- flake.lock; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "ℹ️ No changes detected in flake.lock"
           else
             echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "✅ Changes detected in flake.lock"
+            
+            # Show what changed for better visibility
+            echo "::group::Changes Summary"
+            git diff --stat flake.lock
+            echo "::endgroup::"
           fi
+          echo "::endgroup::"
 
-      - name: nix flake check (optional)
+      - name: nix flake check with enhanced reporting
         if: steps.update.outputs.changed == 'true' && (github.event_name == 'schedule' || github.event.inputs.do_check == 'true')
-        run: nix flake check --print-build-logs
+        run: |
+          echo "::group::Validation Check"
+          start_time=$(date +%s)
+          
+          # Run flake check with comprehensive error reporting
+          if ! nix flake check --print-build-logs --show-trace; then
+            echo "::error::Flake check failed after update. This may indicate breaking changes."
+            
+            # Try to provide helpful context
+            echo "::group::Debugging Information"
+            echo "Recent flake.lock changes:"
+            git log -1 --oneline
+            git diff HEAD~1..HEAD -- flake.lock
+            echo "::endgroup::"
+            
+            exit 1
+          fi
+          
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+          echo "✅ Validation completed successfully in ${duration}s"
+          echo "::endgroup::"
 
       - name: Create PR
         if: steps.update.outputs.changed == 'true'

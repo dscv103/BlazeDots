@@ -11,6 +11,8 @@ jobs:
   discover:
     name: Discover nixosConfigurations
     runs-on: ubuntu-latest
+    # Conditional build logic (Phase 1) - skip for docs-only changes
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
     outputs:
       hosts: ${{ steps.get-hosts.outputs.hosts }}
     steps:
@@ -20,7 +22,22 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@v31
         with:
-          extra_nix_config: experimental-features = nix-command flakes
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            max-jobs = auto
+            cores = 0
+
+      # Shared caching infrastructure for discovery (Phase 1)
+      - name: Cache Nix store (discovery)
+        uses: actions/cache@v4
+        with:
+          path: |
+            /nix/store
+            ~/.cache/nix
+          key: nix-discovery-v2-${{ runner.os }}-${{ hashFiles('flake.lock') }}-${{ hashFiles('flake.nix', 'hosts/**/*.nix') }}
+          restore-keys: |
+            nix-discovery-v2-${{ runner.os }}-${{ hashFiles('flake.lock') }}-
+            nix-discovery-v2-${{ runner.os }}-
 
       - name: Show flake metadata
         run: nix flake metadata || true
@@ -47,28 +64,79 @@ jobs:
       - name: Install Nix
         uses: cachix/install-nix-action@v31
         with:
-          extra_nix_config: experimental-features = nix-command flakes
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            max-jobs = auto
+            cores = 0
+
+      # Host-specific shared caching (Phase 1)
+      - name: Cache Nix store (build)
+        uses: actions/cache@v4
+        with:
+          path: |
+            /nix/store
+            ~/.cache/nix
+          key: nix-build-v2-${{ matrix.host }}-${{ runner.os }}-${{ hashFiles('flake.lock') }}-${{ hashFiles('hosts/${{ matrix.host }}/**/*.nix', 'nix/**/*.nix') }}
+          restore-keys: |
+            nix-build-v2-${{ matrix.host }}-${{ runner.os }}-${{ hashFiles('flake.lock') }}-
+            nix-build-v2-${{ runner.os }}-${{ hashFiles('flake.lock') }}-
+            nix-build-v2-${{ runner.os }}-
 
       - name: Build system closure
         run: |
           set -euo pipefail
           echo "::group::Build nixosConfigurations.${{ matrix.host }}"
-          nix build --accept-flake-config ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel"
-          readlink -f result
+          start_time=$(date +%s)
+          
+          # Build with enhanced logging and error handling
+          nix build --accept-flake-config --print-build-logs \
+            ".#nixosConfigurations.${{ matrix.host }}.config.system.build.toplevel"
+          
+          result_path=$(readlink -f result)
+          echo "Built system: $result_path"
+          
+          # Calculate build time
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+          echo "Build completed in ${duration}s"
+          
+          # Store build metadata for monitoring
+          echo "build_time_seconds=$duration" >> $GITHUB_OUTPUT
+          echo "derivation_path=$result_path" >> $GITHUB_OUTPUT
           echo "::endgroup::"
 
-      - name: Export system as .nar
+      - name: Optimize and export system as .nar
         run: |
           set -euo pipefail
+          echo "::group::Export system closure"
+          
           out="$(readlink -f ./result)"
-          nix store dump-path "$out" > "${{ matrix.host }}.nar"
+          
+          # Get closure size before compression
+          closure_size=$(nix path-info --closure-size --human-readable "$out" | awk '{print $2}')
+          echo "Closure size: $closure_size"
+          
+          # Export with compression for smaller artifacts
+          echo "Exporting system closure..."
+          nix store dump-path "$out" | gzip -6 > "${{ matrix.host }}.nar.gz"
+          
+          # Report compression statistics
+          original_size=$(nix store dump-path "$out" | wc -c)
+          compressed_size=$(stat -c%s "${{ matrix.host }}.nar.gz")
+          compression_ratio=$(( (original_size - compressed_size) * 100 / original_size ))
+          
+          echo "Original size: $(numfmt --to=iec $original_size)"
+          echo "Compressed size: $(numfmt --to=iec $compressed_size)"
+          echo "Compression ratio: ${compression_ratio}%"
+          echo "::endgroup::"
 
-      - name: Upload artifact
+      - name: Upload optimized artifact
         uses: actions/upload-artifact@v4
         with:
           name: nixos-system-${{ matrix.host }}
-          path: ${{ matrix.host }}.nar
+          path: ${{ matrix.host }}.nar.gz
           if-no-files-found: error
+          compression-level: 0  # Already compressed
 
       # Optional: push to Cachix if you have a cache set up.
       # - name: Use Cachix (optional)
