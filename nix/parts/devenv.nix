@@ -11,8 +11,12 @@
       ...
     }:
     {
-      # Expose devenv shells via flake outputs
+      # Expose devenv shells via flake outputs (override fmt.nix devShell)
+      devShells.default = lib.mkForce config.devenv.shells.default.shell;
+      
       devenv.shells.default = {
+        devenv.root = toString ./.;
+
         imports = [
           (inputs.self + "/devenv.nix")
         ];
