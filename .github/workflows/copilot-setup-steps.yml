@@ -41,17 +41,17 @@ jobs:
             keep-outputs = true
             keep-derivations = true
 
-      # Enhanced caching for Copilot setup
+      # Shared caching for copilot setup (Phase 1)
       - name: Cache Nix store (copilot)
         uses: actions/cache@v4
         with:
           path: |
             /nix/store
             ~/.cache/nix
-          key: nix-copilot-${{ runner.os }}-${{ hashFiles('flake.lock', 'nix/**/*.nix') }}
+          key: nix-copilot-v2-${{ runner.os }}-${{ hashFiles('flake.lock') }}-${{ hashFiles('flake.nix', 'nix/**/*.nix') }}
           restore-keys: |
-            nix-copilot-${{ runner.os }}-${{ hashFiles('flake.lock') }}
-            nix-copilot-${{ runner.os }}-
+            nix-copilot-v2-${{ runner.os }}-${{ hashFiles('flake.lock') }}-
+            nix-copilot-v2-${{ runner.os }}-
 
       # ---- Optional: jq for host discovery in flake ----------------------
       - name: Install jq

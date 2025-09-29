@@ -28,16 +28,17 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      # Cache for faster dependency analysis
+      # Shared caching for security scanning (Phase 1)
       - name: Cache Nix store (security)
         uses: actions/cache@v4
         with:
           path: |
             /nix/store
             ~/.cache/nix
-          key: nix-security-${{ runner.os }}-${{ hashFiles('flake.lock') }}
+          key: nix-security-v2-${{ runner.os }}-${{ hashFiles('flake.lock') }}-${{ hashFiles('flake.nix') }}
           restore-keys: |
-            nix-security-${{ runner.os }}-
+            nix-security-v2-${{ runner.os }}-${{ hashFiles('flake.lock') }}-
+            nix-security-v2-${{ runner.os }}-
 
       - name: Analyze flake dependencies
         run: |
