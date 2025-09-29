@@ -17,7 +17,13 @@ jobs:
   dependency-scan:
     name: Dependency Security Scan
     runs-on: ubuntu-latest
-    
+    if: >
+      (github.event_name != 'push' ||
+        !contains(github.event.head_commit.message, '[skip ci]')) &&
+      !(github.event_name == 'push' &&
+        contains(join(github.event.commits.*.modified, ' '), 'README.md') &&
+        !contains(join(github.event.commits.*.modified, ' '), '.nix'))
+
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -27,6 +33,8 @@ jobs:
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
+            max-jobs = auto
+            cores = 0
 
       # Shared caching for security scanning (Phase 1)
       - name: Cache Nix store (security)
@@ -35,7 +43,7 @@ jobs:
           path: |
             /nix/store
             ~/.cache/nix
-          key: nix-security-v2-${{ runner.os }}-${{ hashFiles('flake.lock') }}-${{ hashFiles('flake.nix') }}
+          key: nix-security-v2-${{ runner.os }}-${{ hashFiles('flake.lock') }}-${{ hashFiles('flake.nix', 'nix/**/*.nix') }}
           restore-keys: |
             nix-security-v2-${{ runner.os }}-${{ hashFiles('flake.lock') }}-
             nix-security-v2-${{ runner.os }}-

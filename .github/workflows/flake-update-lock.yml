@@ -42,6 +42,7 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@v20
         with:
           extra-conf: |
+            experimental-features = nix-command flakes
             max-jobs = auto
             cores = 0
             keep-outputs = true
@@ -49,6 +50,17 @@ jobs:
       # Optional: cache popular Nix binaries to speed things up
       - name: Enable Magic Nix Cache
         uses: DeterminateSystems/magic-nix-cache-action@v13
+
+      - name: Cache Nix store (update)
+        uses: actions/cache@v4
+        with:
+          path: |
+            /nix/store
+            ~/.cache/nix
+          key: nix-update-v2-${{ runner.os }}-${{ hashFiles('flake.lock') }}-${{ hashFiles('flake.nix', 'nix/**/*.nix') }}
+          restore-keys: |
+            nix-update-v2-${{ runner.os }}-${{ hashFiles('flake.lock') }}-
+            nix-update-v2-${{ runner.os }}-
 
       - name: Configure Git author
         run: |
