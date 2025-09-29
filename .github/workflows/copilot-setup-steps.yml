@@ -76,7 +76,7 @@ jobs:
           start_time=$(date +%s)
           
           # Use cached formatter if available, otherwise install
-          nix run nixpkgs#nixfmt-rfc-style -- --check .
+          nix run nixpkgs#nixfmt-tree
           
           end_time=$(date +%s)
           duration=$((end_time - start_time))

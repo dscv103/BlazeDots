@@ -8,6 +8,11 @@
 
     flake-parts.url = "github:hercules-ci/flake-parts";
 
+    devenv = {
+      url = "github:cachix/devenv/v1.9";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
     quickshell = {
       url = "git+https://git.outfoxxed.me/outfoxxed/quickshell";
       inputs.nixpkgs.follows = "nixpkgs";
@@ -50,6 +55,7 @@
       systems = [ "x86_64-linux" ];
 
       imports = [
+        inputs.devenv.flakeModule
         ./nix/parts
         ./hosts
       ];
