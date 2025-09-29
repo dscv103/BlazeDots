@@ -32,8 +32,8 @@ Follow these steps to activate the project shell defined in `devenv.nix`.
    echo 'use devenv' > .envrc
    direnv allow
    ```
-   Direnv now auto-loads the shell whenever you enter the directory.
-3. To launch manually without Direnv, run `devenv shell` from the repo root.
+   Direnv now auto-loads the shell whenever you enter the directory. The `.envrc` file is gitignored so it won't be committed to the repository.
+3. To launch manually without Direnv, run `devenv shell` from the repo root, or use the flake dev shell with `nix develop`.
 4. Verify the bundled tooling the first time you enter the shell:
    ```bash
    sapling --version
