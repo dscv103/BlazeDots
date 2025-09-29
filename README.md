@@ -17,32 +17,42 @@ This repository contains a flake-parts based NixOS configuration for the host **
 
 ## Developer Environment
 
-Follow these steps to activate the project shell defined in `devenv.nix`.
+This repository uses **devenv** + **direnv** for automatic development environment setup.
 
-1. Install the prerequisites (once per machine):
-   ```bash
-   nix profile install nixpkgs#direnv
-   nix profile install github:cachix/devenv/v1.9
-   ```
-   Add `eval "$(direnv hook bash)"` (or `... zsh`) to your shell rc if you have not already.
-   
-   > **Note**: We pin to a specific devenv version (v1.9) instead of using `latest` to avoid lock file churn that would require `--no-write-lock-file` when entering the shell.
-2. Create an `.envrc` in the repository root with the single line `use devenv` and allow it:
-   ```bash
-   echo 'use devenv' > .envrc
-   direnv allow
-   ```
-   Direnv now auto-loads the shell whenever you enter the directory. The `.envrc` file is gitignored so it won't be committed to the repository.
-3. To launch manually without Direnv, run `devenv shell` from the repo root, or use the flake dev shell with `nix develop`.
-4. Verify the bundled tooling the first time you enter the shell:
-   ```bash
-   sapling --version
-   ruff --version
-   pytest --version
-   bandit --version
-   pyrefly --help | head -n 1
-   ```
-   The environment also exposes Rust (stable toolchain with rustfmt and clippy), Zig, Node.js 20 with npm, Nix with flakes enabled, and the VS Code extensions listed in `devenv.nix`.
+### Prerequisites (once per machine):
+```bash
+nix profile install nixpkgs#direnv
+```
+Add `eval "$(direnv hook bash)"` (or `... zsh`) to your shell rc if not already done.
+
+### Activation:
+```bash
+# Allow direnv to activate the development environment
+direnv allow
+```
+
+The environment activates automatically when you enter the directory. It provides:
+- **Languages**: Python 3.12 (with uv), JavaScript (Node.js 20), Zig, Nix
+- **Tools**: direnv, nix-direnv, git, ripgrep, fd, jq, nil (Nix LSP)
+- **Python packages**: ruff, pytest, bandit 
+- **Rust tooling**: rustfmt, clippy (as packages)
+- **Project tools**: sapling, pyrefly
+
+### Alternative: Manual activation
+```bash
+# Equivalent to the automatic direnv environment
+nix develop
+```
+
+### Verification:
+```bash
+# Test key tools are available
+python --version
+ruff --version
+pytest --version
+direnv --version
+nix-direnv --help
+```
 
 ## Installation Runbook
 

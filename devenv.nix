@@ -2,6 +2,9 @@
 {
   name = "blazedots";
 
+  # Fix for flake usage
+  devcontainer.enable = lib.mkDefault false;
+
   packages = [
     pkgs.git
     pkgs.jq
@@ -10,6 +13,11 @@
     pkgs.nil
     pkgs.sapling
     pkgs.pyrefly
+    pkgs.direnv
+    pkgs.nix-direnv
+    pkgs.nixpkgs-fmt
+    pkgs.rustfmt
+    pkgs.clippy
   ]
   ++ (with pkgs.python312Packages; [
     ruff
@@ -28,23 +36,9 @@
       uv.enable = true;
     };
 
-    rust = {
-      enable = true;
-      channel = "stable";
-      rustfmt.enable = true;
-      clippy.enable = true;
-    };
-
     zig.enable = true;
 
-    nix = {
-      enable = true;
-      package = pkgs.nix;
-      formatter = pkgs.nixpkgs-fmt;
-      extraOptions = ''
-        experimental-features = nix-command flakes
-      '';
-    };
+    nix.enable = true;
 
     javascript = {
       enable = true;
@@ -53,34 +47,8 @@
     };
   };
 
-  direnv = {
-    enable = true;
-    watchPaths = [
-      "devenv.nix"
-      "flake.nix"
-      "flake.lock"
-    ];
-  };
-
-  vscode = {
-    enable = true;
-    extensions = with pkgs.vscode-extensions; [
-      ms-python.python
-      rust-lang.rust-analyzer
-      ziglang.vscode-zig
-      jnoortheen.nix-ide
-      dbaeumer.vscode-eslint
-      esbenp.prettier-vscode
-    ];
-    settings = {
-      "python.defaultInterpreterPath" = "${pkgs.python312}/bin/python3";
-      "zig.zls.path" = "${pkgs.zls}/bin/zls";
-      "nix.enableLanguageServer" = true;
-      "nix.serverPath" = "${pkgs.nil}/bin/nil";
-    };
-  };
-
   enterShell = ''
     echo "BlazeDots development shell (Python/Rust/Zig/Nix/Node.js)"
+    echo "Available tools: direnv, nix-direnv, nixpkgs-fmt, rustfmt, clippy"
   '';
 }
