@@ -14,11 +14,19 @@ permissions:
   issues: write
 
 jobs:
+  guard:
+    uses: ./.github/workflows/ci-skip-guard.yml
+
   dependency-scan:
     name: Dependency Security Scan
+    needs: guard
+    if: needs.guard.outputs.should-run == 'true'
     runs-on: ubuntu-latest
-    
+
     steps:
+      - name: Explain guard decision
+        run: echo "CI run guard: ${{ needs.guard.outputs.reason }}"
+
       - name: Checkout
         uses: actions/checkout@v5
 
@@ -27,6 +35,8 @@ jobs:
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
+            max-jobs = auto
+            cores = 0
 
       # Shared caching for security scanning (Phase 1)
       - name: Cache Nix store (security)
@@ -35,7 +45,7 @@ jobs:
           path: |
             /nix/store
             ~/.cache/nix
-          key: nix-security-v2-${{ runner.os }}-${{ hashFiles('flake.lock') }}-${{ hashFiles('flake.nix') }}
+          key: nix-security-v2-${{ runner.os }}-${{ hashFiles('flake.lock') }}-${{ hashFiles('flake.nix', 'nix/**/*.nix') }}
           restore-keys: |
             nix-security-v2-${{ runner.os }}-${{ hashFiles('flake.lock') }}-
             nix-security-v2-${{ runner.os }}-
