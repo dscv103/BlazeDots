@@ -20,7 +20,7 @@ echo "use devenv" > .envrc.test
 
 echo -e "\n5. Testing devenv shell without lock writes..."
 # This should NOT try to write any lock files for github:cachix/devenv/latest
-devenv shell --config .envrc.test --command "echo 'DevEnv shell works!'" || echo "Direct devenv test failed"
+devenv shell --envrc .envrc.test --command "echo 'DevEnv shell works!'" || echo "Direct devenv test failed"
 
 echo -e "\n6. Testing nix develop..."
 nix develop --command echo "Nix develop works!"
