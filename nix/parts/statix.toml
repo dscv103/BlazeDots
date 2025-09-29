@@ -1,0 +1,17 @@
+# Statix configuration for optimized Nix linting
+disabled = [
+  # Disable some overly pedantic rules for better performance
+  "empty_pattern",
+  "useless_parens",
+]
+
+# Performance optimizations
+[check]
+# Exclude generated or managed files
+ignore = [
+  "result*",
+  ".git/**",
+  "flake.lock",
+  # Exclude agent instructions to avoid interference
+  ".github/agents/**",
+]

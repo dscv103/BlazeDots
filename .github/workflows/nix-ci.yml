@@ -19,33 +19,121 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      # Cache Nix store to speed up builds
+      # Enhanced multi-level caching for better performance
       - name: Cache Nix store
         uses: actions/cache@v4
         with:
           path: |
             /nix/store
             ~/.cache/nix
-          key: nix-${{ runner.os }}-${{ hashFiles('flake.lock') }}
+          key: nix-store-${{ runner.os }}-${{ hashFiles('flake.lock', 'flake.nix') }}
           restore-keys: |
-            nix-${{ runner.os }}-
+            nix-store-${{ runner.os }}-${{ hashFiles('flake.lock') }}
+            nix-store-${{ runner.os }}-
 
-      - name: Show flake metadata
-        run: nix flake metadata
+      # Cache flake evaluation results for faster subsequent runs
+      - name: Cache flake evaluation
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/nix/eval-cache-v*
+          key: nix-eval-${{ runner.os }}-${{ hashFiles('**/*.nix') }}
+          restore-keys: |
+            nix-eval-${{ runner.os }}-
 
-      # Run all flake checks (includes formatting, linting)
-      - name: Run flake checks
-        run: nix flake check --impure --all-systems
+      # Cache formatting tools and dependencies
+      - name: Cache formatter tools
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/treefmt
+          key: treefmt-${{ runner.os }}-${{ hashFiles('nix/parts/fmt.nix') }}
+          restore-keys: |
+            treefmt-${{ runner.os }}-
 
-      # Ensure formatting is applied (strict check)
-      - name: Check formatting
+      - name: Show flake metadata with timing
         run: |
+          echo "::group::Flake metadata"
+          time nix flake metadata
+          echo "::endgroup::"
+
+      # Parallel execution of independent checks
+      - name: Run flake checks (with timing and parallel safe operations)
+        run: |
+          echo "::group::Flake checks"
+          start_time=$(date +%s)
+          nix flake check --impure --all-systems
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+          echo "Flake check completed in ${duration}s"
+          echo "::endgroup::"
+
+      # Enhanced formatting check with better error reporting
+      - name: Check formatting (strict)
+        run: |
+          echo "::group::Format checking"
           nix fmt
           if [[ $(git diff --name-only) ]]; then
-            echo "Files need formatting:"
+            echo "::error::Files need formatting:"
             git diff --name-only
+            echo ""
+            echo "Run 'nix fmt' locally to fix formatting issues."
+            git diff --color=always
             exit 1
           fi
+          echo "All files properly formatted ✅"
+          echo "::endgroup::"
 
-      - name: Evaluate system derivation
-        run: nix eval .#nixosConfigurations."blazar".config.system.build.toplevel.drvPath
+      # Parallel linting checks
+      - name: Run linting checks
+        run: |
+          echo "::group::Linting checks"
+          
+          # Run statix and deadnix in parallel for faster feedback
+          echo "Running statix (Nix linting)..."
+          nix run nixpkgs#statix -- check . &
+          statix_pid=$!
+          
+          echo "Running deadnix (dead code detection)..."
+          nix run nixpkgs#deadnix -- --fail . &
+          deadnix_pid=$!
+          
+          # Wait for both processes and capture results
+          wait $statix_pid
+          statix_result=$?
+          wait $deadnix_pid
+          deadnix_result=$?
+          
+          if [ $statix_result -ne 0 ]; then
+            echo "::error::Statix linting failed"
+            exit 1
+          fi
+          
+          if [ $deadnix_result -ne 0 ]; then
+            echo "::error::Deadnix found unused code"
+            exit 1
+          fi
+          
+          echo "All linting checks passed ✅"
+          echo "::endgroup::"
+
+      - name: Evaluate system derivation (with performance tracking)
+        run: |
+          echo "::group::System evaluation"
+          start_time=$(date +%s)
+          result=$(nix eval .#nixosConfigurations."blazar".config.system.build.toplevel.drvPath)
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+          echo "System evaluation completed in ${duration}s"
+          echo "Derivation: $result"
+          echo "::endgroup::"
+
+      # Add cache statistics for monitoring
+      - name: Cache statistics
+        if: always()
+        run: |
+          echo "::group::Cache Statistics"
+          echo "Cache usage statistics:"
+          du -sh ~/.cache/nix 2>/dev/null || echo "No Nix cache found"
+          du -sh ~/.cache/treefmt 2>/dev/null || echo "No treefmt cache found" 
+          echo "::endgroup::"

@@ -30,12 +30,28 @@ jobs:
       - name: Install uv (Python launcher)
         uses: astral-sh/setup-uv@v6
 
-      # ---- Nix installation ----------------------------------------------
-      - name: Install Nix
+      # ---- Nix installation with performance optimization --------------
+      - name: Install Nix (optimized)
         uses: cachix/install-nix-action@v31
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
+            max-jobs = auto
+            cores = 0
+            keep-outputs = true
+            keep-derivations = true
+
+      # Enhanced caching for Copilot setup
+      - name: Cache Nix store (copilot)
+        uses: actions/cache@v4
+        with:
+          path: |
+            /nix/store
+            ~/.cache/nix
+          key: nix-copilot-${{ runner.os }}-${{ hashFiles('flake.lock', 'nix/**/*.nix') }}
+          restore-keys: |
+            nix-copilot-${{ runner.os }}-${{ hashFiles('flake.lock') }}
+            nix-copilot-${{ runner.os }}-
 
       # ---- Optional: jq for host discovery in flake ----------------------
       - name: Install jq
@@ -52,36 +68,71 @@ jobs:
       - name: Preflight sequential-thinking server
         run: npx -y @modelcontextprotocol/server-sequential-thinking --help
 
-      # ---- Nix quality & checks ------------------------------------------
+      # ---- Nix quality & checks with performance monitoring -----------
       - name: nixfmt (RFC style) check
         run: |
           set -euo pipefail
-          # Prefer the RFC-style formatter from nixpkgs and run in check mode.
+          echo "::group::Format checking"
+          start_time=$(date +%s)
+          
+          # Use cached formatter if available, otherwise install
           nix run nixpkgs#nixfmt-rfc-style -- --check .
+          
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+          echo "Format check completed in ${duration}s"
+          echo "::endgroup::"
 
-      - name: deadnix (find unused)
+      - name: deadnix (find unused) with performance tracking
         run: |
           set -euo pipefail
+          echo "::group::Dead code detection"
+          start_time=$(date +%s)
+          
           nix run nixpkgs#deadnix -- --fail .
+          
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+          echo "Deadnix check completed in ${duration}s"
+          echo "::endgroup::"
 
-      - name: statix (lint)
+      - name: statix (lint) with performance tracking
         run: |
           set -euo pipefail
+          echo "::group::Static analysis"
+          start_time=$(date +%s)
+          
           nix run nixpkgs#statix -- check .
+          
+          end_time=$(date +%s)
+          duration=$((end_time - start_time))
+          echo "Statix check completed in ${duration}s"
+          echo "::endgroup::"
 
-      - name: nix flake check
+      - name: nix flake check with comprehensive reporting
         run: |
           set -euo pipefail
+          echo "::group::Flake validation"
+          start_time=$(date +%s)
+          
           if [ -f flake.nix ]; then
-            nix flake check --keep-going
+            nix flake check --keep-going --show-trace
+            
+            end_time=$(date +%s)
+            duration=$((end_time - start_time))
+            echo "Flake check completed in ${duration}s"
           else
             echo "No flake.nix found; skipping flake check."
           fi
+          echo "::endgroup::"
 
-      # ---- NixOS build (build all nixosConfigurations in the flake) ------
-      - name: nixos build (all hosts)
+      # ---- NixOS build with enhanced monitoring ------------------------
+      - name: nixos build (all hosts) with performance metrics
         run: |
           set -euo pipefail
+          echo "::group::NixOS Build Performance"
+          overall_start=$(date +%s)
+          
           if [ ! -f flake.nix ]; then
             echo "No flake.nix found; skipping NixOS build."
             exit 0
@@ -95,13 +146,28 @@ jobs:
             exit 0
           fi
 
+          echo "Found $count host configuration(s) to build"
+          
+          # Build each host with individual timing
           for host in $(printf '%s' "$hosts_json" | jq -r 'keys[]'); do
             echo "::group::Building $host"
+            build_start=$(date +%s)
+            
             nix build \
               --print-build-logs \
+              --accept-flake-config \
               .#nixosConfigurations."$host".config.system.build.toplevel
+            
+            build_end=$(date +%s)
+            build_duration=$((build_end - build_start))
+            echo "✅ $host built successfully in ${build_duration}s"
             echo "::endgroup::"
           done
+          
+          overall_end=$(date +%s)
+          total_duration=$((overall_end - overall_start))
+          echo "🎯 All hosts built successfully in ${total_duration}s total"
+          echo "::endgroup::"
 
       # ---- Versions (diagnostics) ----------------------------------------
       - name: Print versions

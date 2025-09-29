@@ -91,17 +91,58 @@ nix store prefetch-file "<URL>" --json | jq -r '.hash'
 
 ## Formatting & CI
 
-Use `nix fmt` (via `nix fmt` or `nix fmt .`) to format files. CI is provided under `.github/workflows/nix-ci.yml` to lint the flake on push using the stable channel.
+Use `nix fmt` (via `nix fmt` or `nix fmt .`) to format files. The repository includes comprehensive CI/CD with enhanced performance optimizations:
+
+### CI Workflows
+
+- **Nix CI** (`nix-ci.yml`): Enhanced with multi-level caching, parallel linting, and performance monitoring
+- **NixOS Build** (`nixos-build.yml`): Optimized matrix builds with compressed artifacts and build metrics
+- **Flake Updates** (`flake-update-lock.yml`): Automated dependency updates with validation and error recovery
+- **Copilot Setup** (`copilot-setup-steps.yml`): Comprehensive MCP server validation with performance tracking
+- **Performance Monitoring** (`performance-monitoring.yml`): Automated CI metrics collection and reporting
+- **Security Scanning** (`security-scan.yml`): Dependency and security policy validation
+
+### Performance Optimizations
+
+The CI system includes several performance improvements:
+- **Enhanced caching**: Multi-level Nix store, evaluation, and tool-specific caching
+- **Parallel execution**: Concurrent linting and formatting checks where safe
+- **Smart artifacts**: Compressed .nar exports with size tracking
+- **Build monitoring**: Automatic timing and performance metric collection
+- **Resource optimization**: Auto-scaling job and core allocation
+
+### Monitoring and Metrics
+
+CI performance is continuously monitored with:
+- Build time tracking per workflow and stage  
+- Cache hit rate analysis and optimization
+- Resource utilization monitoring
+- Success rate and reliability metrics
+- Automated performance reporting on PRs
 
 ## Validation Workflow
 
-After editing modules:
+After editing modules, use the enhanced validation process:
 
 ```bash
+# Format and validate (with timing)
 nix fmt || true
+
+# Quick metadata check
 nix flake metadata
+
+# Comprehensive validation (includes checks and performance monitoring)
 nix eval .#nixosConfigurations."blazar".config.system.build.toplevel.drvPath
+
+# Full system build with performance tracking
+nix build .#nixosConfigurations."blazar".config.system.build.toplevel
 ```
+
+The CI system will automatically run additional checks including:
+- Static analysis with `statix` and `deadnix`
+- Security scanning and dependency analysis  
+- Performance benchmarking and cache optimization
+- Build artifact compression and size tracking
 
 ## Smoke Build
 
