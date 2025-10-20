@@ -28,7 +28,7 @@ jobs:
 
       # ---- uv (for uvx mcp-nixos) ----------------------------------------
       - name: Install uv (Python launcher)
-        uses: astral-sh/setup-uv@v6
+        uses: astral-sh/setup-uv@v7
 
       # ---- Nix installation with performance optimization --------------
       - name: Install Nix (optimized)
